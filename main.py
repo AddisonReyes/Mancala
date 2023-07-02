@@ -1,6 +1,6 @@
-from objects import Player
 from pygame.sprite import Group as Layer
 from pygame.locals import *
+from objects import *
 import numpy as np
 import pygame
 import time
@@ -20,16 +20,114 @@ WINDOW.blit(BACKGROUND, (0, 0))
 
 OBJECTS = []
 LAYERS = {0: Layer()}
+FPS = 30
 
-PLAYERS = [Player(num) for num in range(2)]
-FPS = 60
+class Game:
+    def __init__(self, gameManager):
+        self.clock = pygame.time.Clock()
+        self.gameManager = gameManager
 
-
-class Table():
-    def __init__(self):
+        self.table = Table()
+        p1 = Player(self.table, 0, [i for i in range(1, 7)])
+        p2 = Player(self.table, 7, [i for i in range(8, 14)])
+        self.players = [p1, p2]
         self.turn = 0
-        self.spacing = 95
-        self.first_game = True
+
+    def get_current_player(self) -> Player:
+        return self.players[self.turn]
+    
+    def start_game(self):
+        self.draw_clusters()
+        self.draw_stones()
+
+    def draw_clusters(self):
+        global clusters
+        clusters = self.table.give_clusters()
+        
+        x_padding = 108
+        y_padding = 252
+        x, y = 208, 144
+        aux = 0
+        
+        for cluster in clusters:
+            if cluster not in OBJECTS:
+                OBJECTS.append(cluster)
+
+            if cluster.is_store():
+                pass
+
+            else:
+                cluster.add_position(x, y)
+                if aux == 5:
+                    x, y = 208 + 4, 144 + y_padding
+                    
+                else:
+                    x += x_padding
+
+                aux += 1
+
+    def draw_stones(self):
+        for cluster in clusters:
+            if cluster.is_store():
+                continue
+            
+            else:
+                x, y = cluster.give_position()
+                x, y = x - 21, y - 21
+                X, Y = x, y
+                y_padding = 24
+                aux = 0
+
+                for stone in cluster.stones:
+                    if stone not in OBJECTS:
+                        OBJECTS.append(stone)
+
+                    if aux == 3:
+                        x, y = X, Y
+                        y += y_padding
+                        
+                        y_padding += y_padding
+                        aux = 0
+
+                    stone.add_position(x, y)
+                    x += 24
+                    
+                    aux +=1
+                    
+    
+    def main(self):
+        self.gameManager.new_game()
+        self.start_game()
+        update_layers()
+
+        aux = 1
+        while self.gameManager.In_Game:
+            self.clock.tick(FPS)
+
+            for event in pygame.event.get():
+                if event.type == QUIT:
+                    pygame.quit()
+                    sys.exit()
+
+        #    print(f"\nTURNO {self.turn}")
+
+            #curr_player = self.get_current_player()
+
+            #while True:
+                #cluster_id = int(input("Cluster to stream: "))
+                #last_cluster = curr_player.stream(cluster_id)
+                #if last_cluster is not None: break
+                #print("Cluster invalido !!!!!!")
+            
+            #if last_cluster.pos == curr_player.store_id:
+                #print("Felicidades, otro turno!!!")
+                #continue
+            
+            #self.turn += 1
+            #if self.turn >= len(self.players): 
+                #self.turn = 0
+
+            update_layers()
 
 
 class GameManager():
@@ -63,21 +161,13 @@ def update_layers():
     pygame.display.update() 
 
 
-def main():
-    clock = pygame.time.Clock()
+def run():
+    global GameManager
     gameManager = GameManager()
-    gameManager.new_game()
 
-    while gameManager.In_Game:
-        clock.tick(FPS)
-
-        for event in pygame.event.get():
-            if event.type == QUIT:
-                pygame.quit()
-                sys.exit()
-
-        update_layers()
+    game = Game(gameManager)
+    game.main()
 
 
 if __name__ == '__main__':
-    main()
+    run()
