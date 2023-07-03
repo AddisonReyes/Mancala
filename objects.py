@@ -137,6 +137,12 @@ class Store(Cluster):
         self.rect = super().give_rect()
         super().change_store()
 
+    def recive_stones(self):
+        self.stones = super().stones
+
+    def sum_stones(self):
+        return len(self.stones)
+
     def is_store(self):
         return super().is_store()
     
@@ -235,11 +241,17 @@ class Button(GameObject):
 
 
 class Player():
-    def __init__(self, table: Table, store_id: int, cluster_ids: int):
+    def __init__(self, table: Table, store_id: int, cluster_ids: int, num):
         self.cluster_ids = cluster_ids
         self.store_id = store_id
         self.manual = True
         self.table = table
+        self.num = num
+
+        self.store = self.table.clusters[store_id]
+
+    def count_stones(self):
+        return self.store.sum_stones()
 
     def change_manual(self):
         self.manual = True

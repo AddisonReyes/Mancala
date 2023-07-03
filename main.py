@@ -7,7 +7,7 @@ import time
 import sys
 
 pygame.init()
-WIDTH, HEIGHT = 960, 540 # 
+WIDTH, HEIGHT = 960, 540
 WINDOW = pygame.display.set_mode((WIDTH, HEIGHT))
 
 pygame.display.set_caption('Mancala')
@@ -35,11 +35,11 @@ class Game():
     
     def start_game(self):
         self.table = Table()
-        p1 = Player(self.table, 0, [i for i in range(1, 7)])
-        p2 = Player(self.table, 7, [i for i in range(8, 14)])
+        p1 = Player(self.table, 7, [i for i in range(8, 14)], 1)
+        p2 = Player(self.table, 0, [i for i in range(1, 7)], 2)       
         #p2.change_auto()
 
-        self.players = [p2, p1]
+        self.players = [p1, p2]
         self.turn = 0
 
         self.draw_clusters()
@@ -144,6 +144,33 @@ class Game():
             button.add_position(x, y)
             x += 48
 
+    def check_game_status(self):
+        clear_table = False
+        for player in self.players:
+            no_stones = 0
+            for idx in player.cluster_ids:
+                if len(self.table.clusters[idx].stones) == 0:
+                    no_stones += 1
+
+                else:
+                    break
+
+            if no_stones >= len(player.cluster_ids):
+                self.gameManager.check_for_winner()
+                clear_table = True
+
+        if clear_table:
+            for player in self.players:
+                for idx in player.cluster_ids:
+                    while len(self.table.clusters[idx].stones) >= 1:
+                        try:
+                            self.table.clusters[player.store_id].stones.append(self.table.clusters[idx].stones[0])
+                            self.table.clusters[idx].stones.remove(self.table.clusters[idx].stones[0])
+                            update_layers()
+                        
+                        except:
+                            break
+
     def main(self):
         global turn
 
@@ -175,10 +202,12 @@ class Game():
                         sys.exit()
 
             curr_player = self.get_current_player()
+            print(f"\nTurno del jugador #{curr_player.num}")
             if played == -1:
                 break
 
             while played != True:
+                self.check_game_status()
                 if curr_player.manual:
                     turn = pygame.image.load(f"assets/Mancala (Interface)/Tu turno.png").convert_alpha()
                     cluster_selected = False
@@ -230,9 +259,10 @@ class Game():
             if self.turn >= len(self.players): 
                 self.turn = 0
 
+            self.check_game_status()
             update_layers()
 
-        return None
+        return self.gameManager
 
 
 class GameManager():
@@ -244,20 +274,89 @@ class GameManager():
         self.winner = None
 
     def new_game(self):
+        self.search_winner = False
         self.In_Game = True
         self.You_Win = False
         self.winner = None
 
-    def win(self, winner):
+    def check_for_winner(self):
         self.In_Game = False
-        self.You_Win = True
+        self.search_winner = True
+
+    def win(self, winner):
         self.winner = winner
+        print(f"\nEl jugador #{self.winner.num} ganó el juego")
+
+    def tie(self):
+        print("Empate!")
 
     def repeat(self):
         self.In_Game = False
         self.You_Win = False
         self.winner = None
         return -1
+
+
+class MinimaxSolver():
+    def __init__(self, max_depth=6, ts=None, max_time=None, timeit=False):
+        self.max_depth = max_depth
+        self.max_time = max_time
+        self.timeit = timeit
+        self.ts = ts
+
+    def solve(self, state):
+        max_child, _ = self.__maximize(state, -np.inf, np.inf, 0)
+        return max_child
+
+    def __maximize(self, state, alpha, beta, depth):
+        if self.timeit:
+            if time.time() - self.ts >= self.max_time:
+                return (None, -np.inf)
+
+        terminal_val = game.check_game_status()
+        if terminal_val is not None:
+            return (None, terminal_val)
+        
+        if depth >= self.max_depth:
+            return (None, state.heuristic())
+        
+        max_child, max_utility = (None, -np.inf)
+        for child in state.childrens():
+            _, utility = self.__minimize(child, alpha, beta, depth + 1)
+
+            if utility > max_utility:
+                max_child, max_utility = child, utility
+
+            if utility >= beta:
+                break
+
+            alpha = max(alpha, max_utility)
+        return max_child, max_utility
+    
+    def __minimize(self, state, alpha, beta, depth):
+        if self.timeit:
+            if time.time() - self.ts >= self.max_time:
+                return (None, -np.inf)
+
+        terminal_val = game.check_game_status()
+        if terminal_val is not None:
+            return (None, terminal_val)
+        
+        if depth >= self.max_depth:
+            return (None, state.heuristic())
+        
+        min_child, min_utility = (None, np.inf)
+        for child in state.childrens():
+            _, utility = self.__maximize(child, alpha, beta, depth + 1)
+
+            if utility < min_utility:
+                min_child, min_utility = child, utility
+
+            if utility < alpha:
+                break
+
+            beta = min(beta, min_utility)
+        return min_child, min_utility
 
 
 def update_layers():
@@ -284,14 +383,26 @@ def update_layers():
 
 
 def run():
-    global GameManager
+    global gameManager
     global game
 
     gameManager = GameManager()
     game = Game(gameManager)
     
     while True:
-        game.main()
+        gameManager = game.main()
+
+        if game.gameManager.search_winner:
+            p1 = game.players[0].count_stones()
+            p2 = game.players[1].count_stones()
+
+            print(f"Conteo:\nJugador #1(Tu): {p1}\nJugador #2: {p2}")
+            if p1 > p2:
+                gameManager.win(game.players[0])
+            elif p2 > p1:
+                gameManager.win(game.players[1])
+            else:
+                gameManager.tie()
 
 
 if __name__ == '__main__':
