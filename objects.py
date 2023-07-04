@@ -211,6 +211,143 @@ class Table():
         last_cluster.stones.remove(last_cluster.stones[0])
 
 
+class Fake_Table():
+    def __init__(self, clusters, played=None, player=None):
+        self.old_clusters = clusters
+        self.clusters = clusters
+        self.player = player
+        self.played = played
+
+    def give_clusters(self):
+        return self.clusters
+
+    def childrens(self):
+        playable_clusters = self.check_player_clusters()
+        childrens = []
+
+        for clusters, cluster_played in playable_clusters:
+            childrens.append(Fake_Table(clusters, cluster_played, self.player))
+
+        return childrens
+    
+    def check_player_clusters(self):
+        playable_clusters = []
+
+        for cluster_id in self.player.cluster_ids:
+            self.clusters = self.old_clusters
+
+            try:
+                cluster = self.stream_cluster(cluster_id)
+                playable_clusters.append([cluster, cluster_id])
+            
+            except:
+                pass
+
+        return playable_clusters
+
+    def stream_cluster(self, cluster_id):
+        cluster = self.clusters[cluster_id]
+        n_clusters = len(self.clusters)
+
+        if len(cluster.stones) == 0: 
+            return None
+
+        idx = -1
+        offset = 0
+        limit = len(cluster.stones)
+        while idx > -limit - 1 + offset:
+            next_cluster = self.clusters[(cluster_id + idx)%n_clusters]
+            if next_cluster.is_store() and next_cluster.cluster_id != self.player.store_id:
+                offset -= 1
+            else:
+                next_cluster.stones.append(cluster.stones.pop())
+                
+            idx -= 1
+
+        for idx in range(-1, -len(cluster.stones) - 1, -1):
+            next_cluster = self.clusters[(cluster_id + idx)%n_clusters]
+            next_cluster.stones.append(cluster.stones.pop())
+
+        if len(next_cluster.stones) == 1:
+            self.take_it_all(next_cluster, self.player)
+            
+        return next_cluster
+    
+    def take_it_all(self, last_cluster, player):
+        opposite_index = 14 - last_cluster.cluster_id
+
+        if len(self.clusters[opposite_index].stones) == 0 or last_cluster.cluster_id not in player.cluster_ids:
+            return None
+
+        while len(self.clusters[opposite_index].stones) != 0:
+            for stone in self.clusters[opposite_index].stones:
+                self.clusters[player.store_id].stones.append(stone)
+                self.clusters[opposite_index].stones.remove(stone)
+
+        self.clusters[player.store_id].stones.append(last_cluster.stones[0])
+        last_cluster.stones.remove(last_cluster.stones[0])
+
+    def check_game_status(self, players):
+        terminal_val = None
+        clear_table = False
+
+        for player in players:
+            if player.manual != True:
+                computer = player.num
+
+            no_stones = 0
+            for idx in player.cluster_ids:
+                try:
+                    if len(self.clusters[idx].stones) == 0:
+                        no_stones += 1
+
+                    else:
+                        break
+                except:
+                    pass
+
+            if no_stones >= len(player.cluster_ids):
+                clear_table = True
+                break
+
+        if clear_table:
+            p1 = 0
+            p2 = 0
+
+            for player in players:
+                for idx in player.cluster_ids:
+                    stones = len(self.clusters[idx].stones)
+                    store += stones
+
+                if player.num == 1:
+                    p1 = store
+
+                if player.num == 1:
+                    p2 = store
+
+            if p1 > p2:
+                if computer == 1:
+                    return 1 * np.inf
+                else:
+                    return -1 * np.inf
+                
+            elif p2 > p1:
+                if computer == 2:
+                    return 1 * np.inf
+                else:
+                    return -1 * np.inf
+                
+            else:
+                return -1 * np.inf
+            
+        return terminal_val
+
+    def heuristic(self):
+        heuristic = 0
+
+        return heuristic
+
+
 class Button(GameObject):
     def __init__(self, path):
         self.path1 = path

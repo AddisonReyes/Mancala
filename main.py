@@ -37,7 +37,7 @@ class Game():
         self.table = Table()
         p1 = Player(self.table, 7, [i for i in range(8, 14)], 1)
         p2 = Player(self.table, 0, [i for i in range(1, 7)], 2)       
-        #p2.change_auto()
+        p2.change_auto()
 
         self.players = [p1, p2]
         self.turn = 0
@@ -146,6 +146,7 @@ class Game():
 
     def check_game_status(self):
         clear_table = False
+
         for player in self.players:
             no_stones = 0
             for idx in player.cluster_ids:
@@ -156,8 +157,8 @@ class Game():
                     break
 
             if no_stones >= len(player.cluster_ids):
-                self.gameManager.check_for_winner()
                 clear_table = True
+                break
 
         if clear_table:
             for player in self.players:
@@ -170,6 +171,9 @@ class Game():
                         
                         except:
                             break
+            
+            self.gameManager.check_for_winner()
+            self.break_game = True
 
     def main(self):
         global turn
@@ -178,13 +182,20 @@ class Game():
         self.start_game()
         update_layers()
 
+        self.break_game = False
         last_cluster = None
+        max_time = 0.6
         turn = None
 
         while self.gameManager.In_Game:
             self.clock.tick(FPS)
             update_layers()
+
+            self.real = False
             played = False
+
+            if self.break_game:
+                break
 
             for event in pygame.event.get():
                 if event.type == QUIT:
@@ -201,17 +212,17 @@ class Game():
                         pygame.quit()
                         sys.exit()
 
+            self.check_game_status()
             curr_player = self.get_current_player()
             print(f"\nTurno del jugador #{curr_player.num}")
             if played == -1:
                 break
 
-            while played != True:
-                self.check_game_status()
-                if curr_player.manual:
-                    turn = pygame.image.load(f"assets/Mancala (Interface)/Tu turno.png").convert_alpha()
-                    cluster_selected = False
+            if curr_player.manual:
+                turn = pygame.image.load(f"assets/Mancala (Interface)/Tu turno.png").convert_alpha()
+                cluster_selected = False
 
+                while played != True:
                     for event in pygame.event.get():
                         if event.type == QUIT:
                             pygame.quit()
@@ -220,10 +231,10 @@ class Game():
                         if event.type == MOUSEBUTTONDOWN and cluster_selected != True:
                             for cluster in self.table.clusters:
                                 if cluster.click_me() and cluster.player_store != True:
-                                    cluster_selected = True
-
                                     last_cluster = curr_player.stream(cluster.cluster_id)
-                                    if last_cluster is not None: 
+
+                                    if last_cluster is not None:
+                                        cluster_selected = True
                                         played = True
 
                         if event.type == MOUSEBUTTONDOWN:
@@ -238,28 +249,40 @@ class Game():
 
                     update_layers()
 
-                else:
-                    pass
+            else:
+                state = Fake_Table(clusters=self.table.clusters, player=curr_player)
+                best_state = None
 
-                if played == -1:
-                    break
+                ts = time.time()
+                minimax_solver = MinimaxSolver(max_time=max_time, ts=ts)
+                
+                for depth in range(1, 3):
+                    minimax_solver.max_depth = depth
+                    best_state = minimax_solver.solve(state)
+
+                    if time.time() - ts >= max_time:
+                        break
+
+                
+                last_cluster = curr_player.stream(best_state.played)
             
             if played == -1:
                 break
 
+            print(last_cluster)
+            self.check_game_status()
+            if len(last_cluster.stones) == 1 and last_cluster.cluster_id != 0 and last_cluster.cluster_id != 7:
+                self.table.take_it_all(last_cluster, curr_player)
+
             if last_cluster.cluster_id == curr_player.store_id:
                 print("Felicidades, otro turno!!!")
                 continue
-
-            if len(last_cluster.stones) == 1:
-                self.table.take_it_all(last_cluster, curr_player)
             
             self.turn += 1
             turn = pygame.image.load(f"assets/Mancala (Interface)/_.png").convert_alpha()
             if self.turn >= len(self.players): 
                 self.turn = 0
 
-            self.check_game_status()
             update_layers()
 
         return self.gameManager
@@ -306,14 +329,19 @@ class MinimaxSolver():
 
     def solve(self, state):
         max_child, _ = self.__maximize(state, -np.inf, np.inf, 0)
-        return max_child
+        
+        try:
+            return max_child
+        
+        except:
+            return None
 
     def __maximize(self, state, alpha, beta, depth):
         if self.timeit:
             if time.time() - self.ts >= self.max_time:
                 return (None, -np.inf)
 
-        terminal_val = game.check_game_status()
+        terminal_val = state.check_game_status(game.players)
         if terminal_val is not None:
             return (None, terminal_val)
         
@@ -338,7 +366,7 @@ class MinimaxSolver():
             if time.time() - self.ts >= self.max_time:
                 return (None, -np.inf)
 
-        terminal_val = game.check_game_status()
+        terminal_val = state.check_game_status(game.players)
         if terminal_val is not None:
             return (None, terminal_val)
         
