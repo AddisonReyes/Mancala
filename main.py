@@ -21,6 +21,8 @@ turn_pos = (187, 35)
 
 OBJECTS = []
 LAYERS = {0: Layer()}
+
+sleep_time = 0.6
 FPS = 30
 
 class Game():
@@ -194,7 +196,8 @@ class Game():
             self.real = False
             played = False
 
-            if self.break_game:
+            self.check_game_status()
+            if self.break_game or self.gameManager.In_Game != True:
                 break
 
             for event in pygame.event.get():
@@ -212,14 +215,14 @@ class Game():
                         pygame.quit()
                         sys.exit()
 
-            self.check_game_status()
             curr_player = self.get_current_player()
             print(f"\nTurno del jugador #{curr_player.num}")
             if played == -1:
                 break
 
-            if curr_player.manual:
+            if curr_player.manual and self.gameManager.In_Game:
                 turn = pygame.image.load(f"assets/Mancala (Interface)/Tu turno.png").convert_alpha()
+                self.check_game_status()
                 cluster_selected = False
 
                 while played != True:
@@ -250,7 +253,7 @@ class Game():
                     update_layers()
 
             else:
-                state = Fake_Table(clusters=self.table.clusters, player=curr_player)
+                state = Fake_Table(self.table.clusters, player=curr_player)
                 best_state = None
 
                 ts = time.time()
@@ -258,7 +261,10 @@ class Game():
                 
                 for depth in range(1, 3):
                     minimax_solver.max_depth = depth
-                    best_state = minimax_solver.solve(state)
+                    state = minimax_solver.solve(state)
+
+                    if state is not None:
+                        best_state = state
 
                     if time.time() - ts >= max_time:
                         break
@@ -269,8 +275,7 @@ class Game():
             if played == -1:
                 break
 
-            print(last_cluster)
-            self.check_game_status()
+            time.sleep(sleep_time) 
             if len(last_cluster.stones) == 1 and last_cluster.cluster_id != 0 and last_cluster.cluster_id != 7:
                 self.table.take_it_all(last_cluster, curr_player)
 
@@ -283,6 +288,7 @@ class Game():
             if self.turn >= len(self.players): 
                 self.turn = 0
 
+            self.check_game_status()
             update_layers()
 
         return self.gameManager
@@ -337,6 +343,9 @@ class MinimaxSolver():
             return None
 
     def __maximize(self, state, alpha, beta, depth):
+        if state is None:
+            return (None, -np.inf)
+        
         if self.timeit:
             if time.time() - self.ts >= self.max_time:
                 return (None, -np.inf)
@@ -362,6 +371,9 @@ class MinimaxSolver():
         return max_child, max_utility
     
     def __minimize(self, state, alpha, beta, depth):
+        if state is None:
+            return (None, -np.inf)
+        
         if self.timeit:
             if time.time() - self.ts >= self.max_time:
                 return (None, -np.inf)
@@ -418,6 +430,7 @@ def run():
     game = Game(gameManager)
     
     while True:
+        print("\n/////////////////////////////////////////////////////////////////////")
         gameManager = game.main()
 
         if game.gameManager.search_winner:

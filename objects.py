@@ -83,6 +83,9 @@ class Stone(GameObject):
     def update(self):
         super().update()
 
+    def __repr__(self):
+        return "o"
+
 
 class Cluster(GameObject):
     def __init__(self, pos, stones=None, path="cluster.png", cluster_id=None, x=0, y=0):
@@ -124,7 +127,7 @@ class Cluster(GameObject):
                 return False
 
     def __str__(self):
-        return f"POS({self.pos}) - {self.stones}"
+        return f"\nCluster #({self.cluster_id}): {self.stones}"
 
     def __repr__(self):
         return str(self)
@@ -135,7 +138,7 @@ class Store(Cluster):
         self.path = "store.png"
         super().__init__(path = self.path, *args, **kwargs)
         self.rect = super().give_rect()
-        super().change_store()
+        super().change_store()  
 
     def recive_stones(self):
         self.stones = super().stones
@@ -151,11 +154,18 @@ class Store(Cluster):
     
     def recive_id(self, id):
         super().recive_id(id)
+
+    def __repr__(self):
+        return super().__repr__()
     
 
 class Table():
     def __init__(self):
         self.clusters = self.__construct_clusters(n_stones=3) #3, 5, 7
+
+    def __copy__(self):
+        new_instance = self.__reconstruct_clusters()
+        return new_instance
 
     def give_clusters(self):
         return self.clusters
@@ -170,7 +180,7 @@ class Table():
             clusters[i].recive_id(i)
 
         return clusters
-    
+
     def stream_cluster(self, cluster_id, valid_store_id):
         cluster = self.clusters[cluster_id]
         n_clusters = len(self.clusters)
@@ -213,10 +223,27 @@ class Table():
 
 class Fake_Table():
     def __init__(self, clusters, played=None, player=None):
-        self.old_clusters = clusters
-        self.clusters = clusters
+        self.clusters = self.recreate_clusters(clusters)
         self.player = player
         self.played = played
+
+    def recreate_clusters(self, clusters):
+        fake_clusters = []
+
+        try:    
+            for cluster in clusters:
+                fake_clusters.append(Fake_Cluster(pos=cluster.pos, cluster_id=cluster.cluster_id))
+                
+            for i in range(len(clusters)):
+                stone_qty = len(clusters[i].stones)
+                
+                for _ in range(stone_qty):
+                    fake_clusters[i].add_stone(Fake_Stone())
+        
+        except:
+            pass
+
+        return fake_clusters
 
     def give_clusters(self):
         return self.clusters
@@ -233,21 +260,26 @@ class Fake_Table():
     def check_player_clusters(self):
         playable_clusters = []
 
-        for cluster_id in self.player.cluster_ids:
-            self.clusters = self.old_clusters
-
+        for cluster_id in self.player.cluster_ids:          
             try:
-                cluster = self.stream_cluster(cluster_id)
-                playable_clusters.append([cluster, cluster_id])
+                clusters = list(self.clusters)
+
+                cluster = self.stream_cluster(clusters, cluster_id, self.player.store_id)
+
+                if cluster is not None:
+                    playable_clusters.append([cluster, cluster_id])
+                
+                else:
+                    continue
             
             except:
                 pass
 
         return playable_clusters
 
-    def stream_cluster(self, cluster_id):
-        cluster = self.clusters[cluster_id]
-        n_clusters = len(self.clusters)
+    def stream_cluster(self, clusters, cluster_id, valid_store_id):
+        cluster = clusters[cluster_id]
+        n_clusters = len(clusters)
 
         if len(cluster.stones) == 0: 
             return None
@@ -256,8 +288,8 @@ class Fake_Table():
         offset = 0
         limit = len(cluster.stones)
         while idx > -limit - 1 + offset:
-            next_cluster = self.clusters[(cluster_id + idx)%n_clusters]
-            if next_cluster.is_store() and next_cluster.cluster_id != self.player.store_id:
+            next_cluster = clusters[(cluster_id + idx)%n_clusters]
+            if next_cluster.is_store() and next_cluster.cluster_id != valid_store_id:
                 offset -= 1
             else:
                 next_cluster.stones.append(cluster.stones.pop())
@@ -265,7 +297,7 @@ class Fake_Table():
             idx -= 1
 
         for idx in range(-1, -len(cluster.stones) - 1, -1):
-            next_cluster = self.clusters[(cluster_id + idx)%n_clusters]
+            next_cluster = clusters[(cluster_id + idx)%n_clusters]
             next_cluster.stones.append(cluster.stones.pop())
 
         if len(next_cluster.stones) == 1:
@@ -315,6 +347,7 @@ class Fake_Table():
             p2 = 0
 
             for player in players:
+                store = 0
                 for idx in player.cluster_ids:
                     stones = len(self.clusters[idx].stones)
                     store += stones
@@ -347,6 +380,32 @@ class Fake_Table():
 
         return heuristic
 
+class Fake_Stone():
+    def __repr__(self):
+        return "o"
+        
+class Fake_Cluster():
+    def __init__(self, pos, stones=None, cluster_id=None):
+        if stones is None: 
+            stones = []
+
+        self.cluster_id = cluster_id
+        self.player_store = False
+        self.stones = stones
+        self.pos = pos
+
+    def add_stone(self, stone):
+        self.stones.append(stone)
+
+    def is_store(self):
+        return self.player_store
+
+    def __str__(self):
+        return f"\nCluster #({self.cluster_id}): {self.stones}"
+
+    def __repr__(self):
+        return str(self)
+  
 
 class Button(GameObject):
     def __init__(self, path):
