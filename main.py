@@ -96,15 +96,12 @@ class Game():
                         OBJECTS.append(stone)
 
                     if aux == 4:
-                        x = X#, y = X, Y
+                        x = X
                         y += y_padding
-                    
-                        #y_padding += y_padding
                         aux = 0
 
                     stone.add_position(x, y)
                     x += 24
-                    
                     aux +=1
             
             else:
@@ -119,15 +116,12 @@ class Game():
                         OBJECTS.append(stone)
 
                     if aux == 3:
-                        x, y = X, Y
+                        x = X
                         y += y_padding
-                        
-                        y_padding += y_padding
                         aux = 0
 
                     stone.add_position(x, y)
                     x += 24
-                    
                     aux +=1
 
     def create_buttons(self):
