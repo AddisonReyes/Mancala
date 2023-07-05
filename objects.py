@@ -1,4 +1,5 @@
 import numpy as np
+import random
 import pygame
 import os
 
@@ -63,7 +64,7 @@ class GameObject(pygame.sprite.Sprite):
 
 class Stone(GameObject):
     def __init__(self):
-        self.path = "stone.png"
+        self.path = f"stone{random.randint(1, 8)}.png"
         
         super().__init__(img_path = os.path.join("assets", "Mancala (Game)", self.path), x_scale=1, y_scale=1, orientation=0)
         self.rect = super().give_rect()

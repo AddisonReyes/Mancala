@@ -250,6 +250,9 @@ class Game():
                                 pygame.quit()
                                 sys.exit()
 
+                    if played == -1:
+                        break
+                    
                     update_layers()
 
             else:
