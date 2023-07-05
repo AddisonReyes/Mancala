@@ -96,10 +96,10 @@ class Game():
                         OBJECTS.append(stone)
 
                     if aux == 4:
-                        x, y = X, Y
+                        x = X#, y = X, Y
                         y += y_padding
-                        
-                        y_padding += y_padding
+                    
+                        #y_padding += y_padding
                         aux = 0
 
                     stone.add_position(x, y)
@@ -441,13 +441,15 @@ def run():
             p1 = game.players[0].count_stones()
             p2 = game.players[1].count_stones()
 
-            print(f"Conteo:\nJugador #1(Tu): {p1}\nJugador #2: {p2}")
+            print(f"\nConteo:\nJugador #1(Tu): {p1}\nJugador #2: {p2}")
             if p1 > p2:
                 gameManager.win(game.players[0])
             elif p2 > p1:
                 gameManager.win(game.players[1])
             else:
                 gameManager.tie()
+
+        time.sleep(sleep_time*3)
 
 
 if __name__ == '__main__':

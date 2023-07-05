@@ -392,6 +392,15 @@ class Fake_Table():
         if self.take_all:
             heuristic += 1
 
+        if self.next_cluster.cluster_id == self.player.store_id:
+            heuristic += 6
+
+        elif self.next_cluster.cluster_id not in self.player.cluster_ids:
+            heuristic -= 1
+
+        else:
+            heuristic += 1
+
         return heuristic
 
 class Fake_Stone():
