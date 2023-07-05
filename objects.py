@@ -223,28 +223,26 @@ class Table():
 
 
 class Fake_Table():
-    def __init__(self, clusters, played=None, player=None):
+    def __init__(self, clusters, next_cluster=None, played=None, player=None, take_all=False):
         self.clusters = self.recreate_clusters(clusters)
+        self.next_cluster = next_cluster
+        self.take_all = take_all
         self.player = player
         self.played = played
 
     def recreate_clusters(self, clusters):
         fake_clusters = []
 
-        try:    
-            for cluster in clusters:
-                fake_clusters.append(Fake_Cluster(pos=cluster.pos, cluster_id=cluster.cluster_id))
+        for cluster in clusters:
+            fake_clusters.append(Fake_Cluster(pos=cluster.pos, cluster_id=cluster.cluster_id))
                 
-            for i in range(len(clusters)):
-                stone_qty = len(clusters[i].stones)
+        for i in range(len(clusters)):
+            stone_qty = len(clusters[i].stones)
                 
-                for _ in range(stone_qty):
-                    fake_clusters[i].add_stone(Fake_Stone())
-        
-        except:
-            pass
+            for _ in range(stone_qty):
+                fake_clusters[i].add_stone(Fake_Stone())
 
-        return fake_clusters
+        return list(fake_clusters)
 
     def give_clusters(self):
         return self.clusters
@@ -253,34 +251,32 @@ class Fake_Table():
         playable_clusters = self.check_player_clusters()
         childrens = []
 
-        for clusters, cluster_played in playable_clusters:
-            childrens.append(Fake_Table(clusters, cluster_played, self.player))
+        for clusters, cluster, cluster_id, take_all in playable_clusters:
+            childrens.append(Fake_Table(clusters, cluster, cluster_id, self.player, take_all))
 
         return childrens
     
     def check_player_clusters(self):
         playable_clusters = []
 
-        for cluster_id in self.player.cluster_ids:          
-            try:
-                clusters = list(self.clusters)
+        for cluster_id in self.player.cluster_ids:
+            if len(self.clusters[cluster_id].stones) == 0:
+                continue
 
-                cluster = self.stream_cluster(clusters, cluster_id, self.player.store_id)
+            new_clusters, next_cluster, take_all = self.stream_cluster(self.recreate_clusters(self.clusters), cluster_id, self.player.store_id)
 
-                if cluster is not None:
-                    playable_clusters.append([cluster, cluster_id])
-                
-                else:
-                    continue
-            
-            except:
-                pass
+            if new_clusters is not None and next_cluster is not None:
+                playable_clusters.append([new_clusters, next_cluster, cluster_id, take_all])
 
         return playable_clusters
 
     def stream_cluster(self, clusters, cluster_id, valid_store_id):
+        if cluster_id not in self.player.cluster_ids: 
+            return None, None
+
         cluster = clusters[cluster_id]
         n_clusters = len(clusters)
+        take_all = False
 
         if len(cluster.stones) == 0: 
             return None
@@ -301,24 +297,27 @@ class Fake_Table():
             next_cluster = clusters[(cluster_id + idx)%n_clusters]
             next_cluster.stones.append(cluster.stones.pop())
 
-        if len(next_cluster.stones) == 1:
-            self.take_it_all(next_cluster, self.player)
+        if len(next_cluster.stones) == 1 and next_cluster.cluster_id != 0 and next_cluster.cluster_id != 7:
+            clusters, next_cluster = self.take_it_all(clusters, next_cluster, self.player)
+            take_all = True
             
-        return next_cluster
+        return clusters, next_cluster, take_all
     
-    def take_it_all(self, last_cluster, player):
+    def take_it_all(self, clusters, last_cluster, player):
         opposite_index = 14 - last_cluster.cluster_id
 
-        if len(self.clusters[opposite_index].stones) == 0 or last_cluster.cluster_id not in player.cluster_ids:
-            return None
+        if len(clusters[opposite_index].stones) == 0 or last_cluster.cluster_id not in player.cluster_ids:
+            return clusters, last_cluster
 
-        while len(self.clusters[opposite_index].stones) != 0:
-            for stone in self.clusters[opposite_index].stones:
-                self.clusters[player.store_id].stones.append(stone)
-                self.clusters[opposite_index].stones.remove(stone)
+        while len(clusters[opposite_index].stones) != 0:
+            for stone in clusters[opposite_index].stones:
+                clusters[player.store_id].stones.append(stone)
+                clusters[opposite_index].stones.remove(stone)
 
-        self.clusters[player.store_id].stones.append(last_cluster.stones[0])
+        clusters[player.store_id].stones.append(last_cluster.stones[0])
         last_cluster.stones.remove(last_cluster.stones[0])
+        
+        return clusters, last_cluster
 
     def check_game_status(self, players):
         terminal_val = None
@@ -377,7 +376,21 @@ class Fake_Table():
         return terminal_val
 
     def heuristic(self):
+        computer_store = self.player.store_id
+        if computer_store == 7:
+            player_store = 0
+        else:
+            player_store = 7
+
         heuristic = 0
+        if len(self.clusters[computer_store].stones) > len(self.clusters[player_store].stones):
+            heuristic += 1
+        
+        else:
+            heuristic -= 1
+
+        if self.take_all:
+            heuristic += 1
 
         return heuristic
 

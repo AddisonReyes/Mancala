@@ -186,7 +186,7 @@ class Game():
 
         self.break_game = False
         last_cluster = None
-        max_time = 0.6
+        max_time = 1.6
         turn = None
 
         while self.gameManager.In_Game:
@@ -262,12 +262,12 @@ class Game():
                 ts = time.time()
                 minimax_solver = MinimaxSolver(max_time=max_time, ts=ts)
                 
-                for depth in range(1, 3):
+                for depth in range(1, 6):
                     minimax_solver.max_depth = depth
-                    state = minimax_solver.solve(state)
+                    new_state = minimax_solver.solve(state)
 
-                    if state is not None:
-                        best_state = state
+                    if new_state is not None:
+                        best_state = new_state
 
                     if time.time() - ts >= max_time:
                         break
@@ -338,12 +338,7 @@ class MinimaxSolver():
 
     def solve(self, state):
         max_child, _ = self.__maximize(state, -np.inf, np.inf, 0)
-        
-        try:
-            return max_child
-        
-        except:
-            return None
+        return max_child
 
     def __maximize(self, state, alpha, beta, depth):
         if state is None:
@@ -362,9 +357,12 @@ class MinimaxSolver():
         
         max_child, max_utility = (None, -np.inf)
         for child in state.childrens():
+            if child is not None and max_child is None:
+                max_child = child
+
             _, utility = self.__minimize(child, alpha, beta, depth + 1)
 
-            if utility > max_utility:
+            if utility > max_utility and child is not None:
                 max_child, max_utility = child, utility
 
             if utility >= beta:
@@ -390,9 +388,12 @@ class MinimaxSolver():
         
         min_child, min_utility = (None, np.inf)
         for child in state.childrens():
+            if child is not None and min_child is None:
+                min_child = child
+
             _, utility = self.__maximize(child, alpha, beta, depth + 1)
 
-            if utility < min_utility:
+            if utility < min_utility and child is not None:
                 min_child, min_utility = child, utility
 
             if utility < alpha:
