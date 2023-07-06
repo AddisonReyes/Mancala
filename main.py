@@ -17,8 +17,8 @@ pygame.display.set_icon(ICON)
 BACKGROUND = pygame.image.load(f"assets/Table.png").convert_alpha()
 WINDOW.blit(BACKGROUND, (0, 0))
 
-turn_pos = (187, 35)
-new_turn_pos = (700, 35)
+turn_pos = (400, 36)
+new_turn_pos = (700, 37)
 
 OBJECTS = []
 LAYERS = {0: Layer()}
@@ -28,15 +28,12 @@ FPS = 30
 
 class Game():
     def __init__(self, gameManager):
+        self.arrows = [Arrow("arrow.png") for _ in range(6)]
+
         self.clock = pygame.time.Clock()
         self.gameManager = gameManager
-        self.NEW_GAME = Button("NEW1.png")
-        self.EXIT = Button("EXIT1.png")
-
-        self.STONES_3 = Button("3p1.png")
-        self.STONES_5 = Button("5p1.png")
-        self.STONES_7 = Button("7p1.png")
         self.NUM_STONES = 3
+        self.TWO_PLAYERS = False
 
     def get_current_player(self) -> Player:
         return self.players[self.turn]
@@ -44,14 +41,60 @@ class Game():
     def start_game(self):
         self.table = Table(self.NUM_STONES)
         p1 = Player(self.table, 7, [i for i in range(8, 14)], 1)
-        p2 = Player(self.table, 0, [i for i in range(1, 7)], 2)       
-        p2.change_auto()
+        p2 = Player(self.table, 0, [i for i in range(1, 7)], 2)
+
+        if not self.TWO_PLAYERS:
+            p2.change_auto()
 
         self.players = [p1, p2]
         self.turn = 0
 
         self.draw_clusters()
         self.create_buttons()
+
+    def draw_arrows(self):
+        player = self.get_current_player()
+        idx = 0
+
+        if not player.manual:
+            self.hide_arrows()
+            return
+
+        for cluste_idx in player.cluster_ids:
+            if player.num == 1:
+                if self.arrows[idx] not in OBJECTS:
+                    OBJECTS.append(self.arrows[idx])
+
+                cluster = clusters[cluste_idx]
+                x, y = cluster.give_position()
+                x, y = x, y - 66
+
+                self.arrows[idx].add_position(x, y)
+                self.arrows[idx].reset_orientation()
+                self.arrows[idx].show()
+
+                self.arrows[idx].update()
+                idx += 1
+            
+            else:
+                if self.arrows[idx] not in OBJECTS:
+                    OBJECTS.append(self.arrows[idx])
+
+                cluster = clusters[cluste_idx]
+                x, y = cluster.give_position()
+                x, y = x, y + 66
+
+                self.arrows[idx].add_position(x, y)
+                self.arrows[idx].change_orientation()
+                self.arrows[idx].show()
+
+                self.arrows[idx].update()
+                idx += 1
+
+    def hide_arrows(self):
+        for i in range(6):
+            self.arrows[i].hide()
+            self.arrows[i].update()
 
     def draw_clusters(self):
         global clusters
@@ -131,17 +174,19 @@ class Game():
                     aux +=1
 
     def create_buttons(self):
+        global ONE_PLAYER
+        global TWO_PLAYER
         global STONES_3
         global STONES_5
         global STONES_7
         global NEW_GAME
         global EXIT
 
-        NEW_GAME = self.NEW_GAME
-        EXIT = self.EXIT
+        NEW_GAME = Button("NEW1.png")
+        EXIT = Button("EXIT1.png")
 
         x, y = 93, 48
-        buttons = [NEW_GAME, EXIT]
+        buttons = [EXIT, NEW_GAME]
         for button in buttons:
             if button not in OBJECTS:
                 OBJECTS.append(button)
@@ -149,12 +194,24 @@ class Game():
             button.add_position(x, y)
             x += 48
 
-        STONES_3 = self.STONES_3
-        STONES_5 = self.STONES_5
-        STONES_7 = self.STONES_7
+        STONES_3 = Button("3p1.png")
+        STONES_5 = Button("5p1.png")
+        STONES_7 = Button("7p1.png")
 
         x, y = 771, 492
         buttons = [STONES_3, STONES_5, STONES_7]
+        for button in buttons:
+            if button not in OBJECTS:
+                OBJECTS.append(button)
+
+            button.add_position(x, y)
+            x += 48
+
+        ONE_PLAYER = Button("onep1.png")
+        TWO_PLAYER = Button("twop1.png")
+
+        x, y = 588, 492
+        buttons = [ONE_PLAYER, TWO_PLAYER]
         for button in buttons:
             if button not in OBJECTS:
                 OBJECTS.append(button)
@@ -194,19 +251,19 @@ class Game():
             self.break_game = True
 
     def main(self):
-        global new_turn
-        global turn
-
         self.gameManager.new_game()
         self.start_game()
-        update_layers()
 
         self.break_game = False
         last_cluster = None
-        max_time = 1.6
+        max_time = .6
 
+        if not self.TWO_PLAYERS:
+            global turn
+            turn = pygame.image.load(f"assets/Mancala (Interface)/_.png").convert_alpha()
+
+        global new_turn
         new_turn = pygame.image.load(f"assets/Mancala (Interface)/_.png").convert_alpha()
-        turn = None
 
         while self.gameManager.In_Game:
             self.clock.tick(FPS)
@@ -249,12 +306,26 @@ class Game():
                         played = -1
                         break
 
+                    if ONE_PLAYER.click_me():
+                        if self.TWO_PLAYERS:
+                            self.TWO_PLAYERS = False
+                            played = -1
+                            break
+                        
+                    if TWO_PLAYER.click_me():
+                        if not self.TWO_PLAYERS:
+                            self.TWO_PLAYERS = True
+                            played = -1
+                            break
+
             curr_player = self.get_current_player()
             if played == -1:
                 break
 
             if curr_player.manual and self.gameManager.In_Game:
-                turn = pygame.image.load(f"assets/Mancala (Interface)/Tu turno.png").convert_alpha()
+                if not self.TWO_PLAYERS:
+                    turn = pygame.image.load(f"assets/Mancala (Interface)/Tu turno.png").convert_alpha()
+
                 self.check_game_status()
                 cluster_selected = False
 
@@ -298,6 +369,18 @@ class Game():
                                 played = -1
                                 break
 
+                            if ONE_PLAYER.click_me():
+                                if self.TWO_PLAYERS:
+                                    self.TWO_PLAYERS = False
+                                    played = -1
+                                    break
+                        
+                            if TWO_PLAYER.click_me():
+                                if not self.TWO_PLAYERS:
+                                    self.TWO_PLAYERS = True
+                                    played = -1
+                                    break
+
                     if played == -1:
                         break
                     
@@ -335,15 +418,20 @@ class Game():
                 continue
             
             self.turn += 1
-            turn = pygame.image.load(f"assets/Mancala (Interface)/_.png").convert_alpha()
-            new_turn = pygame.image.load(f"assets/Mancala (Interface)/_.png").convert_alpha()
+            if not self.TWO_PLAYERS:
+                turn = pygame.image.load(f"assets/Mancala (Interface)/_.png").convert_alpha()
 
+            new_turn = pygame.image.load(f"assets/Mancala (Interface)/_.png").convert_alpha()
             if self.turn >= len(self.players): 
                 self.turn = 0
 
             self.check_game_status()
             update_layers()
 
+        if not self.TWO_PLAYERS:
+            turn = pygame.image.load(f"assets/Mancala (Interface)/_.png").convert_alpha()
+        new_turn = pygame.image.load(f"assets/Mancala (Interface)/_.png").convert_alpha()
+        
         return self.gameManager
 
 
@@ -457,11 +545,17 @@ def update_layers():
     WINDOW.blit(BACKGROUND, (0, 0))
     game.draw_clusters()
 
-    try:
+    if game.TWO_PLAYERS:
+        WINDOW.blit(new_turn, turn_pos)
+        game.draw_arrows()
+
+    else:
+        game.draw_arrows()
         WINDOW.blit(new_turn, new_turn_pos)
         WINDOW.blit(turn, turn_pos)
-    except:
-        pass
+
+    if gameManager.search_winner:
+        game.hide_arrows()
 
     for object in OBJECTS:
         if object.layer not in LAYERS:
@@ -487,6 +581,7 @@ def run():
     while True:
         print("\n/////////////////////////////////////////////////////////////////////")
         gameManager = game.main()
+        update_layers()
 
         if game.gameManager.search_winner:
             p1 = game.players[0].count_stones()

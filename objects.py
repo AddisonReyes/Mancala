@@ -47,6 +47,11 @@ class GameObject(pygame.sprite.Sprite):
     def show(self):
         self.load_image(self.image_path)
 
+    def change_orientation(self, new_orientation):
+        self.orientation = new_orientation
+        self.image = pygame.transform.rotate(self.image, self.orientation)
+        self.rect = self.image.get_rect()
+
     def add_position(self, x, y):
         self.position = np.array([x, y])
         self.x = x
@@ -453,6 +458,34 @@ class Button(GameObject):
             return True
         else:
             return False
+
+
+class Arrow(GameObject):
+    def __init__(self, path):
+        self.path1 = path
+        self.path2 = "_.png"
+
+        super().__init__(img_path=os.path.join("assets", "Mancala (Interface)", self.path1), x_scale=1, y_scale=1, orientation=0)
+
+    def add_position(self, x, y):
+        super().add_position(x, y)
+
+    def change_orientation(self):
+        super().change_orientation(180)
+
+    def reset_orientation(self):
+        super().change_orientation(0)
+
+    def update(self):
+        super().update()
+
+    def hide(self):
+        super().change_sprite(os.path.join("assets", "Mancala (Interface)", self.path2))
+        super().update()
+
+    def show(self):
+        super().change_sprite(os.path.join("assets", "Mancala (Interface)", self.path1))
+        super().update()
 
 
 class Player():
