@@ -18,6 +18,7 @@ BACKGROUND = pygame.image.load(f"assets/Table.png").convert_alpha()
 WINDOW.blit(BACKGROUND, (0, 0))
 
 turn_pos = (187, 35)
+new_turn_pos = (700, 35)
 
 OBJECTS = []
 LAYERS = {0: Layer()}
@@ -32,11 +33,16 @@ class Game():
         self.NEW_GAME = Button("NEW1.png")
         self.EXIT = Button("EXIT1.png")
 
+        self.STONES_3 = Button("3p1.png")
+        self.STONES_5 = Button("5p1.png")
+        self.STONES_7 = Button("7p1.png")
+        self.NUM_STONES = 3
+
     def get_current_player(self) -> Player:
         return self.players[self.turn]
     
     def start_game(self):
-        self.table = Table()
+        self.table = Table(self.NUM_STONES)
         p1 = Player(self.table, 7, [i for i in range(8, 14)], 1)
         p2 = Player(self.table, 0, [i for i in range(1, 7)], 2)       
         p2.change_auto()
@@ -86,7 +92,7 @@ class Game():
         for cluster in clusters:
             if cluster.is_store():
                 x, y = cluster.give_position()
-                x, y = x - 35, y - 80
+                x, y = x - 35, y - 120
                 X, Y = x, y
                 y_padding = 24
                 aux = 0
@@ -106,7 +112,7 @@ class Game():
             
             else:
                 x, y = cluster.give_position()
-                x, y = x - 24, y - 22
+                x, y = x - 24, y - 26
                 X, Y = x, y
                 y_padding = 24
                 aux = 0
@@ -125,6 +131,9 @@ class Game():
                     aux +=1
 
     def create_buttons(self):
+        global STONES_3
+        global STONES_5
+        global STONES_7
         global NEW_GAME
         global EXIT
 
@@ -133,6 +142,19 @@ class Game():
 
         x, y = 93, 48
         buttons = [NEW_GAME, EXIT]
+        for button in buttons:
+            if button not in OBJECTS:
+                OBJECTS.append(button)
+
+            button.add_position(x, y)
+            x += 48
+
+        STONES_3 = self.STONES_3
+        STONES_5 = self.STONES_5
+        STONES_7 = self.STONES_7
+
+        x, y = 771, 492
+        buttons = [STONES_3, STONES_5, STONES_7]
         for button in buttons:
             if button not in OBJECTS:
                 OBJECTS.append(button)
@@ -172,6 +194,7 @@ class Game():
             self.break_game = True
 
     def main(self):
+        global new_turn
         global turn
 
         self.gameManager.new_game()
@@ -181,6 +204,8 @@ class Game():
         self.break_game = False
         last_cluster = None
         max_time = 1.6
+
+        new_turn = pygame.image.load(f"assets/Mancala (Interface)/_.png").convert_alpha()
         turn = None
 
         while self.gameManager.In_Game:
@@ -209,8 +234,22 @@ class Game():
                         pygame.quit()
                         sys.exit()
 
+                    if STONES_3.click_me():
+                        self.NUM_STONES = 3
+                        played = -1
+                        break
+
+                    if STONES_5.click_me():
+                        self.NUM_STONES = 5
+                        played = -1
+                        break
+
+                    if STONES_7.click_me():
+                        self.NUM_STONES = 7
+                        played = -1
+                        break
+
             curr_player = self.get_current_player()
-            print(f"\nTurno del jugador #{curr_player.num}")
             if played == -1:
                 break
 
@@ -244,6 +283,21 @@ class Game():
                                 pygame.quit()
                                 sys.exit()
 
+                            if STONES_3.click_me():
+                                self.NUM_STONES = 3
+                                played = -1
+                                break
+
+                            if STONES_5.click_me():
+                                self.NUM_STONES = 5
+                                played = -1
+                                break
+
+                            if STONES_7.click_me():
+                                self.NUM_STONES = 7
+                                played = -1
+                                break
+
                     if played == -1:
                         break
                     
@@ -256,7 +310,7 @@ class Game():
                 ts = time.time()
                 minimax_solver = MinimaxSolver(max_time=max_time, ts=ts)
                 
-                for depth in range(1, 6):
+                for depth in range(1, 20):
                     minimax_solver.max_depth = depth
                     new_state = minimax_solver.solve(state)
 
@@ -277,11 +331,13 @@ class Game():
                 self.table.take_it_all(last_cluster, curr_player)
 
             if last_cluster.cluster_id == curr_player.store_id:
-                print("Felicidades, otro turno!!!")
+                new_turn = pygame.image.load(f"assets/Mancala (Interface)/Otro_turno.png").convert_alpha()
                 continue
             
             self.turn += 1
             turn = pygame.image.load(f"assets/Mancala (Interface)/_.png").convert_alpha()
+            new_turn = pygame.image.load(f"assets/Mancala (Interface)/_.png").convert_alpha()
+
             if self.turn >= len(self.players): 
                 self.turn = 0
 
@@ -402,6 +458,7 @@ def update_layers():
     game.draw_clusters()
 
     try:
+        WINDOW.blit(new_turn, new_turn_pos)
         WINDOW.blit(turn, turn_pos)
     except:
         pass
@@ -443,7 +500,7 @@ def run():
             else:
                 gameManager.tie()
 
-        time.sleep(sleep_time*3)
+            time.sleep(sleep_time*3)
 
 
 if __name__ == '__main__':

@@ -161,8 +161,8 @@ class Store(Cluster):
     
 
 class Table():
-    def __init__(self):
-        self.clusters = self.__construct_clusters(n_stones=3) #3, 5, 7
+    def __init__(self, num_stones):
+        self.clusters = self.__construct_clusters(n_stones=num_stones) #3, 5, 7
 
     def __copy__(self):
         new_instance = self.__reconstruct_clusters()
@@ -383,23 +383,19 @@ class Fake_Table():
             player_store = 7
 
         heuristic = 0
-        if len(self.clusters[computer_store].stones) > len(self.clusters[player_store].stones):
-            heuristic += 1
-        
-        else:
-            heuristic -= 1
+        heuristic += len(self.clusters[computer_store].stones) - len(self.clusters[player_store].stones) * 10
 
         if self.take_all:
-            heuristic += 1
+            heuristic += 10
 
         if self.next_cluster.cluster_id == self.player.store_id:
-            heuristic += 6
+            heuristic += 66
 
         elif self.next_cluster.cluster_id not in self.player.cluster_ids:
-            heuristic -= 1
+            heuristic -= 5
 
         else:
-            heuristic += 1
+            heuristic += 5
 
         return heuristic
 
