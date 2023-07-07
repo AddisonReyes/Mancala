@@ -1,3 +1,4 @@
+from pygame import mixer
 import numpy as np
 import random
 import pygame
@@ -104,11 +105,11 @@ class Cluster(GameObject):
         self.rect = super().give_rect()
 
         if stones is None: 
-            stones = []
+            stones = np.array([], dtype=object)
 
         self.cluster_id = cluster_id
         self.player_store = False
-        self.stones = stones
+        self.stones = np.array(stones, dtype=object)
         self.pos = pos
 
     def recive_id(self, id):
@@ -190,7 +191,7 @@ class Table():
         for i in range(len(clusters)):
             clusters[i].recive_id(i)
 
-        return clusters
+        return np.array(clusters, dtype=object)
 
     def stream_cluster(self, cluster_id, valid_store_id):
         cluster = self.clusters[cluster_id]
@@ -207,13 +208,15 @@ class Table():
             if next_cluster.is_store() and next_cluster.cluster_id != valid_store_id:
                 offset -= 1
             else:
-                next_cluster.stones.append(cluster.stones.pop())
+                next_cluster.stones = np.append(next_cluster.stones, cluster.stones[-1])
+                cluster.stones = np.delete(cluster.stones, -1)
                 
             idx -= 1
 
         for idx in range(-1, -len(cluster.stones) - 1, -1):
             next_cluster = self.clusters[(cluster_id + idx)%n_clusters]
-            next_cluster.stones.append(cluster.stones.pop())
+            next_cluster.stones = np.append(next_cluster.stones, cluster.stones[-1])
+            cluster.stones = np.delete(cluster.stones, -1)
 
         return next_cluster
     
@@ -225,14 +228,15 @@ class Table():
 
         while len(self.clusters[opposite_index].stones) != 0:
             for stone in self.clusters[opposite_index].stones:
-                self.clusters[player.store_id].stones.append(stone)
-                self.clusters[opposite_index].stones.remove(stone)
+                self.clusters[player.store_id].stones = np.append(self.clusters[player.store_id].stones, stone)
+                self.clusters[opposite_index].stones = np.delete(self.clusters[opposite_index].stones, np.where(self.clusters[opposite_index].stones == stone))
 
-        self.clusters[player.store_id].stones.append(last_cluster.stones[0])
-        last_cluster.stones.remove(last_cluster.stones[0])
+        self.clusters[player.store_id].stones = np.append(self.clusters[player.store_id].stones, last_cluster.stones[0])
+        last_cluster.stones = np.delete(last_cluster.stones, np.where(last_cluster.stones == last_cluster.stones[0]))
 
     def clear_clusters(self):
-        self.clear_clusters = []
+        self.clear_clusters = np.array([], dtype=object)
+
 
 class Fake_Table():
     def __init__(self, clusters, next_cluster=None, played=None, player=None, take_all=False):
@@ -243,10 +247,10 @@ class Fake_Table():
         self.played = played
 
     def recreate_clusters(self, clusters):
-        fake_clusters = []
+        fake_clusters = np.array([], dtype=object)
 
         for cluster in clusters:
-            fake_clusters.append(Fake_Cluster(pos=cluster.pos, cluster_id=cluster.cluster_id))
+            fake_clusters = np.append(fake_clusters, Fake_Cluster(pos=cluster.pos, cluster_id=cluster.cluster_id))
                 
         for i in range(len(clusters)):
             stone_qty = len(clusters[i].stones)
@@ -261,10 +265,10 @@ class Fake_Table():
 
     def childrens(self):
         playable_clusters = self.check_player_clusters()
-        childrens = []
+        childrens = np.array([], dtype=object)
 
         for clusters, cluster, cluster_id, take_all in playable_clusters:
-            childrens.append(Fake_Table(clusters, cluster, cluster_id, self.player, take_all))
+            childrens = np.append(childrens, Fake_Table(clusters, cluster, cluster_id, self.player, take_all))
 
         return childrens
     
@@ -301,13 +305,15 @@ class Fake_Table():
             if next_cluster.is_store() and next_cluster.cluster_id != valid_store_id:
                 offset -= 1
             else:
-                next_cluster.stones.append(cluster.stones.pop())
+                next_cluster.stones = np.append(next_cluster.stones, cluster.stones[-1])
+                cluster.stones = np.delete(cluster.stones, -1)
                 
             idx -= 1
 
         for idx in range(-1, -len(cluster.stones) - 1, -1):
             next_cluster = clusters[(cluster_id + idx)%n_clusters]
-            next_cluster.stones.append(cluster.stones.pop())
+            next_cluster.stones = np.append(next_cluster.stones, cluster.stones[-1])
+            cluster.stones = np.delete(cluster.stones, -1)
 
         if len(next_cluster.stones) == 1 and next_cluster.cluster_id != 0 and next_cluster.cluster_id != 7:
             clusters, next_cluster = self.take_it_all(clusters, next_cluster, self.player)
@@ -323,11 +329,11 @@ class Fake_Table():
 
         while len(clusters[opposite_index].stones) != 0:
             for stone in clusters[opposite_index].stones:
-                clusters[player.store_id].stones.append(stone)
-                clusters[opposite_index].stones.remove(stone)
+                clusters[player.store_id].stones = np.append(clusters[player.store_id].stones, stone)
+                clusters[opposite_index].stones = np.delete(clusters[opposite_index].stones, np.where(clusters[opposite_index].stones == stone))
 
-        clusters[player.store_id].stones.append(last_cluster.stones[0])
-        last_cluster.stones.remove(last_cluster.stones[0])
+        clusters[player.store_id].stones = np.append(clusters[player.store_id].stones, last_cluster.stones[0])
+        last_cluster.stones = np.delete(last_cluster.stones, np.where(last_cluster.stones == last_cluster.stones[0]))
         
         return clusters, last_cluster
 
@@ -420,15 +426,15 @@ class Fake_Stone():
 class Fake_Cluster():
     def __init__(self, pos, stones=None, cluster_id=None):
         if stones is None: 
-            stones = []
+            stones = np.array([], dtype=object)
 
         self.cluster_id = cluster_id
         self.player_store = False
-        self.stones = stones
+        self.stones = np.array(stones, dtype=object)
         self.pos = pos
 
     def add_stone(self, stone):
-        self.stones.append(stone)
+        self.stones = np.append(self.stones, stone)
 
     def is_store(self):
         return self.player_store
@@ -502,7 +508,7 @@ class Arrow(GameObject):
 
 class Player():
     def __init__(self, table: Table, store_id: int, cluster_ids: int, num):
-        self.cluster_ids = cluster_ids
+        self.cluster_ids = np.array(cluster_ids, dtype=int)
         self.store_id = store_id
         self.manual = True
         self.table = table

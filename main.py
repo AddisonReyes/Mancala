@@ -1,12 +1,16 @@
 from pygame.sprite import Group as Layer
 from pygame.locals import *
+from pygame import mixer
 from objects import *
 import numpy as np
 import pygame
 import time
 import sys
 
+
 pygame.init()
+mixer.init()
+
 WIDTH, HEIGHT = 960, 540
 WINDOW = pygame.display.set_mode((WIDTH, HEIGHT))
 
@@ -23,15 +27,18 @@ new_turn_pos = (700, 37)
 OBJECTS = []
 LAYERS = {0: Layer()}
 
+#mixer.music.load('song.mp3')
 sleep_time = 0.6
 FPS = 30
 
+
 class Game():
     def __init__(self, gameManager):
-        self.arrows = [Arrow("arrow.png") for _ in range(6)]
+        self.arrows = np.array([Arrow("arrow.png") for _ in range(6)], dtype=object)
 
         self.clock = pygame.time.Clock()
         self.gameManager = gameManager
+        self.first_game = True
         self.NUM_STONES = 3
 
         self.TWO_PLAYERS = False
@@ -48,11 +55,14 @@ class Game():
         if not self.TWO_PLAYERS:
             p2.change_auto()
 
-        self.players = [p1, p2]
+        self.players = np.array([p1, p2], dtype=object)
         self.turn = 0
 
         self.draw_clusters()
-        self.create_buttons()
+
+        if self.first_game:
+            self.create_buttons()
+            self.first_game = False
 
     def draw_arrows(self):
         player = self.get_current_player()
@@ -157,41 +167,84 @@ class Game():
                 x, y = cluster.give_position()
                 x, y = x - 35, y - 120
                 X, Y = x, y
+
+                x_padding = 24
                 y_padding = 24
+                stone_added = 0
                 aux = 0
 
                 for stone in cluster.stones:
                     if stone not in OBJECTS:
                         OBJECTS.append(stone)
 
-                    if aux == 4:
-                        x = X
-                        y += y_padding
+                    if stone_added < 44:
+                        if aux == 4:
+                            x = X
+                            y += y_padding
+                            aux = 0
+
+                    elif stone_added == 44:
+                        x, y = X + x_padding/2, Y - y_padding/2
+
+                    elif stone_added == 47:
+                        x, y = X + x_padding/2, Y + y_padding/2
                         aux = 0
 
+                    else:
+                        if aux == 3:
+                            x, y = X + x_padding/2, y + y_padding/2
+                            aux = 0
+
+                    if stone_added == 84:
+                        break
+
                     stone.add_position(x, y)
-                    x += 24
+
                     aux +=1
+                    x += x_padding
+                    stone_added += 1
             
             else:
                 x, y = cluster.give_position()
                 x, y = x - 24, y - 26
                 X, Y = x, y
+
+                x_padding = 24
                 y_padding = 24
+                stone_added = 0
                 aux = 0
 
                 for stone in cluster.stones:
                     if stone not in OBJECTS:
                         OBJECTS.append(stone)
 
-                    if aux == 3:
-                        x = X
-                        y += y_padding
-                        aux = 0
+                    if stone_added < 9:
+                        if aux == 3:
+                            x = X
+                            y += y_padding
+                            aux = 0
+                    
+                    elif stone_added == 9:
+                        x, y = X + x_padding/2, Y - y_padding/2
+
+                    elif stone_added == 11:
+                        x, y = X - x_padding/2, Y + y_padding/2
+
+                    elif stone_added == 15:
+                        x, y = X - x_padding/2, Y + y_padding/2 + y_padding
+
+                    elif stone_added == 19:
+                        x, y = X + x_padding/2, Y + y_padding*2 + y_padding/2
+
+                    elif stone_added >= 21:
+                        break
 
                     stone.add_position(x, y)
-                    x += 24
+
+                    x += x_padding
                     aux +=1
+
+                    stone_added += 1
 
     def create_buttons(self):
         global ONE_PLAYER
@@ -206,7 +259,7 @@ class Game():
         EXIT = Button("EXIT1.png")
 
         x, y = 93, 48
-        buttons = [EXIT, NEW_GAME]
+        buttons = np.array([EXIT, NEW_GAME], dtype=object)
         for button in buttons:
             if button not in OBJECTS:
                 OBJECTS.append(button)
@@ -219,7 +272,7 @@ class Game():
         STONES_7 = Button("7p1.png")
 
         x, y = 771, 492
-        buttons = [STONES_3, STONES_5, STONES_7]
+        buttons = np.array([STONES_3, STONES_5, STONES_7], dtype=object)
         for button in buttons:
             if button not in OBJECTS:
                 OBJECTS.append(button)
@@ -231,7 +284,7 @@ class Game():
         TWO_PLAYER = Button("twop1.png")
 
         x, y = 588, 492
-        buttons = [ONE_PLAYER, TWO_PLAYER]
+        buttons = np.array([ONE_PLAYER, TWO_PLAYER], dtype=object)
         for button in buttons:
             if button not in OBJECTS:
                 OBJECTS.append(button)
@@ -294,8 +347,8 @@ class Game():
                 for idx in player.cluster_ids:
                     while len(self.table.clusters[idx].stones) >= 1:
                         try:
-                            self.table.clusters[player.store_id].stones.append(self.table.clusters[idx].stones[0])
-                            self.table.clusters[idx].stones.remove(self.table.clusters[idx].stones[0])
+                            self.table.clusters[player.store_id].stones = np.append(self.table.clusters[player.store_id].stones, self.table.clusters[idx].stones[0])
+                            self.table.clusters[idx].stones = np.delete(self.table.clusters[idx].stones, np.where(self.table.clusters[idx].stones == self.table.clusters[idx].stones[0]))
                             update_layers()
                         
                         except:
@@ -306,9 +359,6 @@ class Game():
 
     def clean(self):
         self.table.clear_clusters()
-
-        OBJECTS = []
-        LAYERS = {0: Layer()}
 
     def main(self):
         self.gameManager.new_game()
@@ -572,7 +622,7 @@ def update_layers():
         layer.draw(WINDOW)
 
     pygame.display.flip()
-    pygame.display.update() 
+    pygame.display.update()
 
 
 def draw_total_stones(p1_stones, p2_stones):
@@ -590,7 +640,7 @@ def draw_total_stones(p1_stones, p2_stones):
     else:
         p2_num0 = pygame.image.load(f"assets/Mancala (Game)/{p2_stones}.png").convert_alpha()
 
-    stores = [0, 7]
+    stores = np.array([0, 7], dtype=int)
     x_padding = 36
     y_padding = 56
 
@@ -644,6 +694,13 @@ def run():
             time.sleep(sleep_time*6)
 
         game.clean()
+        for obj in OBJECTS:
+            try:
+                obj.destroy()
+                del obj
+
+            except:
+                continue
 
 
 if __name__ == '__main__':
