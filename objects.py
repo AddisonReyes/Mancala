@@ -3,6 +3,7 @@ import random
 import pygame
 import os
 
+
 class GameObject(pygame.sprite.Sprite):
     def __init__(self, x=0, y=0, layer=0, x_scale=1, y_scale=1, orientation=0, img_path=os.path.join("assets", "empty.png")):
         super().__init__()
@@ -64,7 +65,8 @@ class GameObject(pygame.sprite.Sprite):
         return self.x, self.y
 
     def destroy(self):
-        pass
+        self.kill()
+        del self
 
 
 class Stone(GameObject):
@@ -88,6 +90,9 @@ class Stone(GameObject):
 
     def update(self):
         super().update()
+
+    def destroy(self):
+        return super().destroy()
 
     def __repr__(self):
         return "o"
@@ -226,6 +231,8 @@ class Table():
         self.clusters[player.store_id].stones.append(last_cluster.stones[0])
         last_cluster.stones.remove(last_cluster.stones[0])
 
+    def clear_clusters(self):
+        self.clear_clusters = []
 
 class Fake_Table():
     def __init__(self, clusters, next_cluster=None, played=None, player=None, take_all=False):
@@ -404,10 +411,12 @@ class Fake_Table():
 
         return heuristic
 
+
 class Fake_Stone():
     def __repr__(self):
         return "o"
         
+
 class Fake_Cluster():
     def __init__(self, pos, stones=None, cluster_id=None):
         if stones is None: 
@@ -454,8 +463,11 @@ class Button(GameObject):
 
     def click_me(self):
         mouse_position = pygame.mouse.get_pos()
-        if self.rect.collidepoint(mouse_position):
+        mouse_pressed = pygame.mouse.get_pressed()
+
+        if self.rect.collidepoint(mouse_position) and mouse_pressed[0]:
             return True
+                
         else:
             return False
 

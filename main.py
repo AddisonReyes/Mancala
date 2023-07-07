@@ -33,6 +33,7 @@ class Game():
         self.clock = pygame.time.Clock()
         self.gameManager = gameManager
         self.NUM_STONES = 3
+
         self.TWO_PLAYERS = False
 
     def get_current_player(self) -> Player:
@@ -43,6 +44,7 @@ class Game():
         p1 = Player(self.table, 7, [i for i in range(8, 14)], 1)
         p2 = Player(self.table, 0, [i for i in range(1, 7)], 2)
 
+        #p1.change_auto()
         if not self.TWO_PLAYERS:
             p2.change_auto()
 
@@ -69,11 +71,20 @@ class Game():
                 x, y = cluster.give_position()
                 x, y = x, y - 66
 
-                self.arrows[idx].add_position(x, y)
-                self.arrows[idx].reset_orientation()
-                self.arrows[idx].show()
+                if len(cluster.stones) == 0:
+                    self.arrows[idx].add_position(x, y)
+                    self.arrows[idx].reset_orientation()
+                    self.arrows[idx].hide()
 
-                self.arrows[idx].update()
+                    self.arrows[idx].update()
+
+                else:
+                    self.arrows[idx].add_position(x, y)
+                    self.arrows[idx].reset_orientation()
+                    self.arrows[idx].show()
+
+                    self.arrows[idx].update()
+
                 idx += 1
             
             else:
@@ -84,11 +95,20 @@ class Game():
                 x, y = cluster.give_position()
                 x, y = x, y + 66
 
-                self.arrows[idx].add_position(x, y)
-                self.arrows[idx].change_orientation()
-                self.arrows[idx].show()
+                if len(cluster.stones) == 0:
+                    self.arrows[idx].add_position(x, y)
+                    self.arrows[idx].change_orientation()
+                    self.arrows[idx].hide()
 
-                self.arrows[idx].update()
+                    self.arrows[idx].update()
+
+                else:
+                    self.arrows[idx].add_position(x, y)
+                    self.arrows[idx].change_orientation()
+                    self.arrows[idx].show()
+
+                    self.arrows[idx].update()
+
                 idx += 1
 
     def hide_arrows(self):
@@ -219,6 +239,40 @@ class Game():
             button.add_position(x, y)
             x += 48
 
+    def mouse_event(self):
+        played = False
+        if NEW_GAME.click_me():
+            self.gameManager.repeat()
+            played = -1
+
+        if EXIT.click_me():
+            pygame.quit()
+            sys.exit()
+
+        if STONES_3.click_me():
+            self.NUM_STONES = 3
+            played = -1
+
+        if STONES_5.click_me():
+            self.NUM_STONES = 5
+            played = -1
+
+        if STONES_7.click_me():
+            self.NUM_STONES = 7
+            played = -1
+
+        if ONE_PLAYER.click_me():
+            if self.TWO_PLAYERS:
+                self.TWO_PLAYERS = False
+                played = -1
+                        
+        if TWO_PLAYER.click_me():
+            if not self.TWO_PLAYERS:
+                self.TWO_PLAYERS = True
+                played = -1
+
+        return played
+
     def check_game_status(self):
         clear_table = False
 
@@ -249,6 +303,12 @@ class Game():
             
             self.gameManager.check_for_winner()
             self.break_game = True
+
+    def clean(self):
+        self.table.clear_clusters()
+
+        OBJECTS = []
+        LAYERS = {0: Layer()}
 
     def main(self):
         self.gameManager.new_game()
@@ -282,41 +342,7 @@ class Game():
                     sys.exit()
 
                 if event.type == MOUSEBUTTONDOWN:
-                    if NEW_GAME.click_me():
-                        self.gameManager.repeat()
-                        played = -1
-                        break
-
-                    if EXIT.click_me():
-                        pygame.quit()
-                        sys.exit()
-
-                    if STONES_3.click_me():
-                        self.NUM_STONES = 3
-                        played = -1
-                        break
-
-                    if STONES_5.click_me():
-                        self.NUM_STONES = 5
-                        played = -1
-                        break
-
-                    if STONES_7.click_me():
-                        self.NUM_STONES = 7
-                        played = -1
-                        break
-
-                    if ONE_PLAYER.click_me():
-                        if self.TWO_PLAYERS:
-                            self.TWO_PLAYERS = False
-                            played = -1
-                            break
-                        
-                    if TWO_PLAYER.click_me():
-                        if not self.TWO_PLAYERS:
-                            self.TWO_PLAYERS = True
-                            played = -1
-                            break
+                    played = self.mouse_event()
 
             curr_player = self.get_current_player()
             if played == -1:
@@ -335,6 +361,9 @@ class Game():
                             pygame.quit()
                             sys.exit()
 
+                        if event.type == MOUSEBUTTONDOWN:
+                            played = self.mouse_event()
+
                         if event.type == MOUSEBUTTONDOWN and cluster_selected != True:
                             for cluster in self.table.clusters:
                                 if cluster.click_me() and cluster.player_store != True:
@@ -343,43 +372,6 @@ class Game():
                                     if last_cluster is not None:
                                         cluster_selected = True
                                         played = True
-
-                        if event.type == MOUSEBUTTONDOWN:
-                            if NEW_GAME.click_me():
-                                self.gameManager.repeat()
-                                played = -1
-                                break
-
-                            if EXIT.click_me():
-                                pygame.quit()
-                                sys.exit()
-
-                            if STONES_3.click_me():
-                                self.NUM_STONES = 3
-                                played = -1
-                                break
-
-                            if STONES_5.click_me():
-                                self.NUM_STONES = 5
-                                played = -1
-                                break
-
-                            if STONES_7.click_me():
-                                self.NUM_STONES = 7
-                                played = -1
-                                break
-
-                            if ONE_PLAYER.click_me():
-                                if self.TWO_PLAYERS:
-                                    self.TWO_PLAYERS = False
-                                    played = -1
-                                    break
-                        
-                            if TWO_PLAYER.click_me():
-                                if not self.TWO_PLAYERS:
-                                    self.TWO_PLAYERS = True
-                                    played = -1
-                                    break
 
                     if played == -1:
                         break
@@ -442,6 +434,8 @@ class GameManager():
         self.real = False
 
         self.winner = None
+        self.win_png = pygame.image.load(f"assets/Mancala (Interface)/ganador.png").convert_alpha()
+        self.tie_png = pygame.image.load(f"assets/Mancala (Interface)/empate.png").convert_alpha()
 
     def new_game(self):
         self.search_winner = False
@@ -455,10 +449,20 @@ class GameManager():
 
     def win(self, winner):
         self.winner = winner
-        print(f"\nEl jugador #{self.winner.num} ganó el juego")
+
+        if self.winner.store_id == 0:
+            WINDOW.blit(self.win_png, (8, 166))
+        else:
+            WINDOW.blit(self.win_png, (772, 166))
+
+        pygame.display.flip()
+        pygame.display.update()
 
     def tie(self):
-        print("Empate!")
+        WINDOW.blit(self.tie_png, (400, 240))
+
+        pygame.display.flip()
+        pygame.display.update()
 
     def repeat(self):
         self.In_Game = False
@@ -571,6 +575,49 @@ def update_layers():
     pygame.display.update() 
 
 
+def draw_total_stones(p1_stones, p2_stones):
+    if len(p1_stones) == 2:
+        p1_num0 = pygame.image.load(f"assets/Mancala (Game)/{p1_stones[0]}.png").convert_alpha()
+        p1_num1 = pygame.image.load(f"assets/Mancala (Game)/{p1_stones[1]}.png").convert_alpha()
+
+    else:
+        p1_num0 = pygame.image.load(f"assets/Mancala (Game)/{p1_stones}.png").convert_alpha()
+
+    if len(p2_stones) == 2:
+        p2_num0 = pygame.image.load(f"assets/Mancala (Game)/{p2_stones[0]}.png").convert_alpha()
+        p2_num1 = pygame.image.load(f"assets/Mancala (Game)/{p2_stones[1]}.png").convert_alpha()
+
+    else:
+        p2_num0 = pygame.image.load(f"assets/Mancala (Game)/{p2_stones}.png").convert_alpha()
+
+    stores = [0, 7]
+    x_padding = 36
+    y_padding = 56
+
+    for idx in stores:
+        x, y = clusters[idx].give_position()
+        x, y = x - x_padding, y - y_padding
+
+        if idx == 7:
+            if len(p1_stones) == 2:
+                WINDOW.blit(p1_num0, (x, y))
+                WINDOW.blit(p1_num1, (x+x_padding, y))
+            
+            else:
+                WINDOW.blit(p1_num0, (x+x_padding/2, y))
+
+        if idx == 0:
+            if len(p2_stones) == 2:
+                WINDOW.blit(p2_num0, (x, y))
+                WINDOW.blit(p2_num1, (x+x_padding, y))
+            
+            else:
+                WINDOW.blit(p2_num0, (x+x_padding/2, y))
+
+    pygame.display.flip()
+    pygame.display.update()
+
+
 def run():
     global gameManager
     global game
@@ -579,15 +626,14 @@ def run():
     game = Game(gameManager)
     
     while True:
-        print("\n/////////////////////////////////////////////////////////////////////")
         gameManager = game.main()
         update_layers()
 
         if game.gameManager.search_winner:
             p1 = game.players[0].count_stones()
             p2 = game.players[1].count_stones()
+            draw_total_stones(str(p1), str(p2))
 
-            print(f"\nConteo:\nJugador #1(Tu): {p1}\nJugador #2: {p2}")
             if p1 > p2:
                 gameManager.win(game.players[0])
             elif p2 > p1:
@@ -595,7 +641,9 @@ def run():
             else:
                 gameManager.tie()
 
-            time.sleep(sleep_time*3)
+            time.sleep(sleep_time*6)
+
+        game.clean()
 
 
 if __name__ == '__main__':
