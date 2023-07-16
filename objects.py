@@ -5,8 +5,29 @@ import pygame
 import os
 
 
+SKINS = {
+    0: "Classic_table",
+    1: "Black_and_White",
+    2: "Wood_table"
+}
+
+skin = 0
+last_skin = SKINS[skin]
+
+def next_skin():
+    global SKINS
+    global skin
+
+    if skin == len(SKINS) - 1:
+        skin = 0
+    
+    else:
+        skin += 1
+
+    return SKINS, skin
+
 class GameObject(pygame.sprite.Sprite):
-    def __init__(self, x=0, y=0, layer=0, x_scale=1, y_scale=1, orientation=0, img_path=os.path.join("assets", "empty.png")):
+    def __init__(self, x=0, y=0, layer=0, x_scale=1, y_scale=1, orientation=0, img_path=os.path.join("assets", "Mancala (Interface)", "_.png")):
         super().__init__()
         self.x = x
         self.y = y
@@ -72,7 +93,14 @@ class GameObject(pygame.sprite.Sprite):
 
 class Stone(GameObject):
     def __init__(self):
-        self.path = f"stone{random.randint(1, 8)}.png"
+        if SKINS[skin] == "Classic_table":
+            self.path = f"{SKINS[skin]} stone{random.randint(1, 8)}.png"
+
+        if SKINS[skin] == "Black_and_White":
+            self.path = f"{SKINS[skin]} stone{random.randint(1, 2)}.png"
+
+        if SKINS[skin] == "Wood_table":
+            self.path = f"{SKINS[skin]} stone{random.randint(1, 5)}.png"
         
         super().__init__(img_path = os.path.join("assets", "Mancala (Game)", self.path), x_scale=1, y_scale=1, orientation=0)
         self.rect = super().give_rect()
@@ -92,6 +120,18 @@ class Stone(GameObject):
     def update(self):
         super().update()
 
+    def change_skin(self):
+        if SKINS[skin] == "Classic_table":
+            self.path = f"{SKINS[skin]} stone{random.randint(1, 8)}.png"
+
+        if SKINS[skin] == "Black_and_White":
+            self.path = f"{SKINS[skin]} stone{random.randint(1, 2)}.png"
+
+        if SKINS[skin] == "Wood_table":
+            self.path = f"{SKINS[skin]} stone{random.randint(1, 5)}.png"
+
+        super().change_sprite(os.path.join("assets", "Mancala (Game)", self.path))  
+
     def destroy(self):
         return super().destroy()
 
@@ -100,9 +140,10 @@ class Stone(GameObject):
 
 
 class Cluster(GameObject):
-    def __init__(self, pos, stones=None, path="cluster.png", cluster_id=None, x=0, y=0):
+    def __init__(self, pos, stones=None, path=f"{SKINS[skin]} cluster.png", cluster_id=None, x=0, y=0):
         super().__init__(img_path = os.path.join("assets", "Mancala (Game)", path), x=x, y=y)
         self.rect = super().give_rect()
+        self.path = path
 
         if stones is None: 
             stones = np.array([], dtype=object)
@@ -127,6 +168,18 @@ class Cluster(GameObject):
     def change_store(self):
         self.player_store = True
 
+    def update(self):
+        super().update()
+
+    def change_skin(self):
+        if self.player_store:
+            self.path = f"{SKINS[skin]} store.png"
+
+        else:
+            self.path = f"{SKINS[skin]} cluster.png"
+
+        super().change_sprite(os.path.join("assets", "Mancala (Game)", self.path))  
+
     def is_store(self):
         return self.player_store
     
@@ -147,10 +200,16 @@ class Cluster(GameObject):
 
 class Store(Cluster):
     def __init__(self, *args, **kwargs):
-        self.path = "store.png"
+        self.path = f"{SKINS[skin]} store.png"
         super().__init__(path = self.path, *args, **kwargs)
         self.rect = super().give_rect()
-        super().change_store()  
+        super().change_store()
+
+    def update(self):
+        super().update()
+
+    def change_skin(self):
+        super().change_skin()
 
     def recive_stones(self):
         self.stones = super().stones

@@ -18,7 +18,7 @@ pygame.display.set_caption('Mancala')
 ICON = pygame.image.load("assets/icon.png").convert_alpha()
 pygame.display.set_icon(ICON)
 
-BACKGROUND = pygame.image.load(f"assets/Table.png").convert_alpha()
+BACKGROUND = pygame.image.load(f"assets/{SKINS[skin]} Table.png").convert_alpha()
 WINDOW.blit(BACKGROUND, (0, 0))
 
 turn_pos = (400, 36)
@@ -26,6 +26,9 @@ new_turn_pos = (700, 37)
 
 OBJECTS = []
 LAYERS = {0: Layer()}
+
+SKINS = SKINS
+skin = skin
 
 #mixer.music.load('song.mp3')
 sleep_time = 0.6
@@ -42,6 +45,7 @@ class Game():
         self.NUM_STONES = 3
 
         self.TWO_PLAYERS = False
+        self.another_turn = False
 
     def get_current_player(self) -> Player:
         return self.players[self.turn]
@@ -63,6 +67,9 @@ class Game():
         if self.first_game:
             self.create_buttons()
             self.first_game = False
+        
+        else:
+            self.refresh_sprites()
 
     def draw_arrows(self):
         player = self.get_current_player()
@@ -136,14 +143,14 @@ class Game():
         second_row = False
         aux = 0
 
-        store_x, store_y = 100, 270
+        store_x, store_y = 99, 270
         for cluster in clusters:
             if cluster not in OBJECTS:
                 OBJECTS.append(cluster)
 
             if cluster.is_store():
                 cluster.add_position(store_x, store_y)
-                store_x += 761
+                store_x += 762
 
             else:
                 cluster.add_position(x, y)
@@ -247,12 +254,14 @@ class Game():
                     stone_added += 1
 
     def create_buttons(self):
+        global CHANGE_TABLE
         global ONE_PLAYER
         global TWO_PLAYER
         global STONES_3
         global STONES_5
         global STONES_7
         global NEW_GAME
+        global HELP
         global EXIT
 
         NEW_GAME = Button("NEW1.png")
@@ -292,6 +301,18 @@ class Game():
             button.add_position(x, y)
             x += 48
 
+        CHANGE_TABLE = Button("Change_Table1.png")
+        HELP = Button("Help1.png")
+
+        x, y = 93, 492
+        buttons = np.array([HELP, CHANGE_TABLE], dtype=object)
+        for button in buttons:
+            if button not in OBJECTS:
+                OBJECTS.append(button)
+
+            button.add_position(x, y)
+            x += 48
+
     def mouse_event(self):
         played = False
         if NEW_GAME.click_me():
@@ -324,7 +345,46 @@ class Game():
                 self.TWO_PLAYERS = True
                 played = -1
 
+        if CHANGE_TABLE.click_me():
+            global SKINS
+            global skin 
+
+            SKINS, skin = next_skin()
+            self.refresh_sprites()
+
+        if HELP.click_me():
+            tutorial()
+
         return played
+    
+    def refresh_sprites(self):
+        global BACKGROUND
+        global new_turn
+        global OBJECTS
+        global turn
+        global SKIN
+        global skin
+
+        BACKGROUND = pygame.image.load(f"assets/{SKINS[skin]} Table.png").convert_alpha()
+        self.win_png = pygame.image.load(f"assets/Mancala (Interface)/{SKINS[skin]} ganador.png").convert_alpha()
+        self.tie_png = pygame.image.load(f"assets/Mancala (Interface)/{SKINS[skin]} empate.png").convert_alpha()
+
+        if not self.TWO_PLAYERS:
+            turn = pygame.image.load(f"assets/Mancala (Interface)/{SKINS[skin]} Tu turno.png").convert_alpha()
+
+        if self.another_turn:
+            new_turn = pygame.image.load(f"assets/Mancala (Interface)/{SKINS[skin]} Otro_turno.png").convert_alpha()
+        else:
+            new_turn = pygame.image.load(f"assets/Mancala (Interface)/_.png").convert_alpha()
+
+        for obj in OBJECTS:
+            try:
+                obj.change_skin()
+            
+            except:
+                continue
+
+        update_layers()
 
     def check_game_status(self):
         clear_table = False
@@ -400,7 +460,7 @@ class Game():
 
             if curr_player.manual and self.gameManager.In_Game:
                 if not self.TWO_PLAYERS:
-                    turn = pygame.image.load(f"assets/Mancala (Interface)/Tu turno.png").convert_alpha()
+                    turn = pygame.image.load(f"assets/Mancala (Interface)/{SKINS[skin]} Tu turno.png").convert_alpha()
 
                 self.check_game_status()
                 cluster_selected = False
@@ -456,7 +516,8 @@ class Game():
                 self.table.take_it_all(last_cluster, curr_player)
 
             if last_cluster.cluster_id == curr_player.store_id:
-                new_turn = pygame.image.load(f"assets/Mancala (Interface)/Otro_turno.png").convert_alpha()
+                new_turn = pygame.image.load(f"assets/Mancala (Interface)/{SKINS[skin]} Otro_turno.png").convert_alpha()
+                self.another_turn = True
                 continue
             
             self.turn += 1
@@ -473,6 +534,7 @@ class Game():
         if not self.TWO_PLAYERS:
             turn = pygame.image.load(f"assets/Mancala (Interface)/_.png").convert_alpha()
         new_turn = pygame.image.load(f"assets/Mancala (Interface)/_.png").convert_alpha()
+        self.another_turn = False
         
         return self.gameManager
 
@@ -484,8 +546,6 @@ class GameManager():
         self.real = False
 
         self.winner = None
-        self.win_png = pygame.image.load(f"assets/Mancala (Interface)/ganador.png").convert_alpha()
-        self.tie_png = pygame.image.load(f"assets/Mancala (Interface)/empate.png").convert_alpha()
 
     def new_game(self):
         self.search_winner = False
@@ -501,15 +561,15 @@ class GameManager():
         self.winner = winner
 
         if self.winner.store_id == 0:
-            WINDOW.blit(self.win_png, (8, 166))
+            WINDOW.blit(pygame.image.load(f"assets/Mancala (Interface)/{SKINS[skin]} ganador.png").convert_alpha(), (8, 166))
         else:
-            WINDOW.blit(self.win_png, (772, 166))
+            WINDOW.blit(pygame.image.load(f"assets/Mancala (Interface)/{SKINS[skin]} ganador.png").convert_alpha(), (772, 166))
 
         pygame.display.flip()
         pygame.display.update()
 
     def tie(self):
-        WINDOW.blit(self.tie_png, (400, 240))
+        WINDOW.blit(pygame.image.load(f"assets/Mancala (Interface)/{SKINS[skin]} empate.png").convert_alpha(), (400, 240))
 
         pygame.display.flip()
         pygame.display.update()
@@ -627,18 +687,18 @@ def update_layers():
 
 def draw_total_stones(p1_stones, p2_stones):
     if len(p1_stones) == 2:
-        p1_num0 = pygame.image.load(f"assets/Mancala (Game)/{p1_stones[0]}.png").convert_alpha()
-        p1_num1 = pygame.image.load(f"assets/Mancala (Game)/{p1_stones[1]}.png").convert_alpha()
+        p1_num0 = pygame.image.load(f"assets/Mancala (Game)/{SKINS[skin]} {p1_stones[0]}.png").convert_alpha()
+        p1_num1 = pygame.image.load(f"assets/Mancala (Game)/{SKINS[skin]} {p1_stones[1]}.png").convert_alpha()
 
     else:
-        p1_num0 = pygame.image.load(f"assets/Mancala (Game)/{p1_stones}.png").convert_alpha()
+        p1_num0 = pygame.image.load(f"assets/Mancala (Game)/{SKINS[skin]} {p1_stones}.png").convert_alpha()
 
     if len(p2_stones) == 2:
-        p2_num0 = pygame.image.load(f"assets/Mancala (Game)/{p2_stones[0]}.png").convert_alpha()
-        p2_num1 = pygame.image.load(f"assets/Mancala (Game)/{p2_stones[1]}.png").convert_alpha()
+        p2_num0 = pygame.image.load(f"assets/Mancala (Game)/{SKINS[skin]} {p2_stones[0]}.png").convert_alpha()
+        p2_num1 = pygame.image.load(f"assets/Mancala (Game)/{SKINS[skin]} {p2_stones[1]}.png").convert_alpha()
 
     else:
-        p2_num0 = pygame.image.load(f"assets/Mancala (Game)/{p2_stones}.png").convert_alpha()
+        p2_num0 = pygame.image.load(f"assets/Mancala (Game)/{SKINS[skin]} {p2_stones}.png").convert_alpha()
 
     stores = np.array([0, 7], dtype=int)
     x_padding = 36
@@ -666,6 +726,10 @@ def draw_total_stones(p1_stones, p2_stones):
 
     pygame.display.flip()
     pygame.display.update()
+
+
+def tutorial():
+    pass
 
 
 def run():
