@@ -460,19 +460,19 @@ class Fake_Table():
             player_store = 7
 
         heuristic = 0
-        heuristic += len(self.clusters[computer_store].stones) - len(self.clusters[player_store].stones) * 10
+        heuristic += (len(self.clusters[computer_store].stones) - len(self.clusters[player_store].stones)) * 16
 
         if self.take_all:
-            heuristic += 10
+            heuristic += 600
 
         if self.next_cluster.cluster_id == self.player.store_id:
             heuristic += 66
 
         elif self.next_cluster.cluster_id not in self.player.cluster_ids:
-            heuristic -= 5
+            heuristic -= 66
 
         else:
-            heuristic += 5
+            heuristic += 1
 
         return heuristic
 
@@ -513,28 +513,47 @@ class Button(GameObject):
 
         super().__init__(img_path=os.path.join("assets", "Mancala (Interface)", self.path1), x_scale=1, y_scale=1, orientation=0)
         self.rect = super().give_rect()
+        self.on_screen = True
 
     def add_position(self, x, y):
         super().add_position(x, y)
 
-    def update(self):
-        if super().is_colliding(pygame.mouse.get_pos()):
-            super().change_sprite(os.path.join("assets", "Mancala (Interface)", self.path2))
+    def change_orientation(self):
+        super().change_orientation(180)
 
-        else:
-            super().change_sprite(os.path.join("assets", "Mancala (Interface)", self.path1))  
+    def change_orientation_manual(self, new_orientation):
+        super().change_orientation(new_orientation)
+
+    def hide(self):
+        self.on_screen = False
+        super().change_sprite(os.path.join("assets", "Mancala (Interface)", "_.png"))
+        super().update()
+
+    def show(self):
+        self.on_screen = True
+        super().change_sprite(os.path.join("assets", "Mancala (Interface)", self.path1))
+        super().update()
+
+    def update(self):
+        if self.on_screen:
+            if super().is_colliding(pygame.mouse.get_pos()):
+                super().change_sprite(os.path.join("assets", "Mancala (Interface)", self.path2))
+
+            else:
+                super().change_sprite(os.path.join("assets", "Mancala (Interface)", self.path1))  
             
         super().update()
 
     def click_me(self):
-        mouse_position = pygame.mouse.get_pos()
-        mouse_pressed = pygame.mouse.get_pressed()
+        if self.on_screen:
+            mouse_position = pygame.mouse.get_pos()
+            mouse_pressed = pygame.mouse.get_pressed()
 
-        if self.rect.collidepoint(mouse_position) and mouse_pressed[0]:
-            return True
-                
-        else:
-            return False
+            if self.rect.collidepoint(mouse_position) and mouse_pressed[0]:
+                return True
+                    
+            else:
+                return False
 
 
 class Arrow(GameObject):

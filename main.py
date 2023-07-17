@@ -8,8 +8,6 @@ import sys
 
 
 pygame.init()
-#mixer.init()
-
 WIDTH, HEIGHT = 960, 540
 WINDOW = pygame.display.set_mode((WIDTH, HEIGHT))
 
@@ -24,7 +22,7 @@ turn_pos = (400, 36)
 new_turn_pos = (700, 37)
 
 OBJECTS = []
-LAYERS = {0: Layer()}
+LAYERS = {0: Layer(), 1: Layer()}
 
 SKINS = SKINS
 skin = skin
@@ -39,7 +37,7 @@ FPS = 30
 
 class Game():
     def __init__(self, gameManager):
-        self.arrows = np.array([Arrow("arrow.png") for _ in range(6)], dtype=object)
+        self.arrows = np.array([Arrow("arrow1.png") for _ in range(6)], dtype=object)
 
         self.clock = pygame.time.Clock()
         self.gameManager = gameManager
@@ -52,6 +50,32 @@ class Game():
     def get_current_player(self) -> Player:
         return self.players[self.turn]
     
+    def intro(self):
+        skip = False
+        for i in range(0, 5):
+            for event in pygame.event.get():
+                if event.type == QUIT:
+                    pygame.quit()
+                    sys.exit()
+
+                if event.type == KEYDOWN and event.key == K_ESCAPE:
+                    skip = True
+                    break
+
+            if skip:
+                break
+
+            intro = pygame.image.load(f"assets/Mancala (Interface)/Intro{i}.png").convert_alpha()
+            
+            WINDOW.blit(intro, (0, 0))
+            pygame.display.flip()
+            pygame.display.update()
+            
+            time.sleep(sleep_time)
+
+        if skip != True:
+            time.sleep(sleep_time*2.6)
+
     def start_game(self):
         self.table = Table(self.NUM_STONES)
         p1 = Player(self.table, 7, [i for i in range(8, 14)], 1)
@@ -65,8 +89,8 @@ class Game():
         self.turn = 0
 
         self.draw_clusters()
-
         if self.first_game:
+            self.intro()
             self.create_buttons()
             self.first_game = False
         
@@ -133,7 +157,6 @@ class Game():
     def hide_arrows(self):
         for i in range(6):
             self.arrows[i].hide()
-            self.arrows[i].update()
 
     def draw_clusters(self):
         global clusters
@@ -665,31 +688,47 @@ class MinimaxSolver():
         return min_child, min_utility
 
 
-def update_layers():
-    WINDOW.blit(BACKGROUND, (0, 0))
-    game.draw_clusters()
+def update_layers(tutorial_update = False):
+    if not tutorial_update:
+        WINDOW.blit(BACKGROUND, (0, 0))
+        game.draw_clusters()
 
-    if game.TWO_PLAYERS:
-        WINDOW.blit(new_turn, turn_pos)
-        game.draw_arrows()
+        if game.TWO_PLAYERS:
+            WINDOW.blit(new_turn, turn_pos)
+            game.draw_arrows()
 
+        else:
+            game.draw_arrows()
+            WINDOW.blit(new_turn, new_turn_pos)
+            WINDOW.blit(turn, turn_pos)
+
+        if gameManager.search_winner:
+            game.hide_arrows()
+
+        for object in OBJECTS:
+            if object.layer not in LAYERS:
+                LAYERS[0] = Layer()
+
+            LAYERS[0].add(object)
+
+        for num, layer in LAYERS.items():
+            if num == 0:
+                layer.update()
+                layer.draw(WINDOW)
+    
     else:
-        game.draw_arrows()
-        WINDOW.blit(new_turn, new_turn_pos)
-        WINDOW.blit(turn, turn_pos)
+        WINDOW.blit(intro_page, (0, 0))
 
-    if gameManager.search_winner:
-        game.hide_arrows()
+        for object in OBJECTS[:3]:
+            if object.layer not in LAYERS:
+                LAYERS[1] = Layer()
 
-    for object in OBJECTS:
-        if object.layer not in LAYERS:
-            LAYERS[object.layer] = Layer()
+            LAYERS[1].add(object)
 
-        LAYERS[object.layer].add(object)
-
-    for _, layer in LAYERS.items():
-        layer.update()
-        layer.draw(WINDOW)
+        for num, layer in LAYERS.items():
+            if num == 1:
+                layer.update()
+                layer.draw(WINDOW)
 
     pygame.display.flip()
     pygame.display.update()
@@ -738,8 +777,104 @@ def draw_total_stones(p1_stones, p2_stones):
     pygame.display.update()
 
 
+first_time = True
+first_time = True
+
+right_arrow = None
+left_arrow = None
+exit_tuto = None
+
 def tutorial():
-    pass
+    global OBJECTS
+    global SKINS
+    global skin 
+
+    global right_arrow
+    global left_arrow
+    global first_time
+    global exit_tuto
+
+    if first_time:
+        left_arrow = Button("arrow1.png")
+        right_arrow = Button("arrow1.png")
+        exit_tuto = Button("EXITtuto1.png")
+        
+        left_arrow.change_orientation_manual(90 + 180)
+        right_arrow.change_orientation_manual(90)
+
+        left_arrow.add_position(160, 420)
+        right_arrow.add_position(800, 420)
+        exit_tuto.add_position(800, 120)
+
+        OBJECTS.insert(0, left_arrow)
+        OBJECTS.insert(1, right_arrow)
+        OBJECTS.insert(2, exit_tuto)
+        first_time = False
+    
+    else:
+        exit_tuto.show()
+
+    page = 0
+    printed = False
+    tutorial = True
+    while tutorial:
+        if page >= 6:
+            tutorial = False
+            break
+
+        if printed != True:
+            global intro_page
+            intro_page = pygame.image.load(f"assets\Mancala (Interface)\{SKINS[skin]} Tuto{page}.png").convert_alpha()
+
+            if page == 0:
+                left_arrow.hide()
+
+            else:
+                left_arrow.show()
+
+            if page == 5:
+                right_arrow.hide()
+        
+            else:
+                right_arrow.show()
+
+            printed = True
+
+        for event in pygame.event.get():
+            if event.type == QUIT:
+                pygame.quit()
+                sys.exit()
+
+            if event.type == MOUSEBUTTONDOWN:
+                if EXIT.click_me():
+                    pygame.quit()
+                    sys.exit()
+
+                if HELP.click_me() or exit_tuto.click_me():
+                    tutorial = False
+                    page = 6
+                    break
+
+                if CHANGE_TABLE.click_me():
+                    SKINS, skin = next_skin()
+                    game.refresh_sprites()
+                    printed = False
+
+                if left_arrow.click_me():
+                    if page >= 1:
+                        printed = False
+                        page -= 1
+
+                if right_arrow.click_me():
+                    printed = False
+                    page += 1
+
+        update_layers(True)
+
+    right_arrow.hide()
+    left_arrow.hide()
+    exit_tuto.hide()
+    update_layers()
 
 
 def run():
@@ -765,7 +900,7 @@ def run():
             else:
                 gameManager.tie()
 
-            time.sleep(sleep_time*4)
+            time.sleep(sleep_time*4.6)
 
         game.clean()
         for obj in OBJECTS:
