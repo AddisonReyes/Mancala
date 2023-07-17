@@ -474,6 +474,24 @@ class Fake_Table():
         else:
             heuristic += 1
 
+        for cluster_id in self.player.cluster_ids:
+            opposite_index = 14 - self.clusters[cluster_id].cluster_id
+            if len(self.clusters[cluster_id].stones) == 0:
+                continue
+            
+            if len(self.clusters[opposite_index].stones) == 0 and len(self.clusters[cluster_id].stones) >= 3:
+                heuristic -= len(self.clusters[cluster_id].stones)/2
+            
+            else:
+                heuristic += len(self.clusters[cluster_id].stones)/2
+
+            if len(self.clusters[cluster_id].stones) <= 9:
+                heuristic += len(self.clusters[cluster_id].stones)/3
+
+            else:
+                heuristic -= len(self.clusters[cluster_id].stones)/3
+
+
         return heuristic
 
 

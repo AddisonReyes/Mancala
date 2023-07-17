@@ -31,6 +31,12 @@ TAKEIT_SOUND =  pygame.mixer.Sound('assets/Audio/take_it.mp3')
 ROCKS_SOUND =  pygame.mixer.Sound('assets/Audio/rocks.mp3')
 WIN_SOUND =  pygame.mixer.Sound('assets/Audio/win.mp3')
 
+first_time = True
+
+right_arrow = None
+left_arrow = None
+exit_tuto = None
+
 sleep_time = 0.6
 FPS = 30
 
@@ -462,7 +468,6 @@ class Game():
 
         while self.gameManager.In_Game:
             self.clock.tick(FPS)
-            update_layers()
 
             self.real = False
             played = False
@@ -776,13 +781,6 @@ def draw_total_stones(p1_stones, p2_stones):
     pygame.display.flip()
     pygame.display.update()
 
-
-first_time = True
-first_time = True
-
-right_arrow = None
-left_arrow = None
-exit_tuto = None
 
 def tutorial():
     global OBJECTS
