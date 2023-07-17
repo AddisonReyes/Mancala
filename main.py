@@ -1,6 +1,5 @@
 from pygame.sprite import Group as Layer
 from pygame.locals import *
-from pygame import mixer
 from objects import *
 import numpy as np
 import pygame
@@ -9,7 +8,7 @@ import sys
 
 
 pygame.init()
-mixer.init()
+#mixer.init()
 
 WIDTH, HEIGHT = 960, 540
 WINDOW = pygame.display.set_mode((WIDTH, HEIGHT))
@@ -30,7 +29,10 @@ LAYERS = {0: Layer()}
 SKINS = SKINS
 skin = skin
 
-#mixer.music.load('song.mp3')
+TAKEIT_SOUND =  pygame.mixer.Sound('assets/Audio/take_it.mp3')
+ROCKS_SOUND =  pygame.mixer.Sound('assets/Audio/rocks.mp3')
+WIN_SOUND =  pygame.mixer.Sound('assets/Audio/win.mp3')
+
 sleep_time = 0.6
 FPS = 30
 
@@ -487,6 +489,7 @@ class Game():
                         break
                     
                     update_layers()
+                ROCKS_SOUND.play()
 
             else:
                 state = Fake_Table(self.table.clusters, player=curr_player)
@@ -507,13 +510,19 @@ class Game():
 
                 
                 last_cluster = curr_player.stream(best_state.played)
+                
+                update_layers()
+                ROCKS_SOUND.play()
             
             if played == -1:
                 break
 
             time.sleep(sleep_time) 
             if len(last_cluster.stones) == 1 and last_cluster.cluster_id != 0 and last_cluster.cluster_id != 7:
-                self.table.take_it_all(last_cluster, curr_player)
+                sound = self.table.take_it_all(last_cluster, curr_player)
+                
+                if sound:
+                    TAKEIT_SOUND.play()
 
             if last_cluster.cluster_id == curr_player.store_id:
                 new_turn = pygame.image.load(f"assets/Mancala (Interface)/{SKINS[skin]} Otro_turno.png").convert_alpha()
@@ -559,6 +568,7 @@ class GameManager():
 
     def win(self, winner):
         self.winner = winner
+        WIN_SOUND.play()
 
         if self.winner.store_id == 0:
             WINDOW.blit(pygame.image.load(f"assets/Mancala (Interface)/{SKINS[skin]} ganador.png").convert_alpha(), (8, 166))
@@ -755,7 +765,7 @@ def run():
             else:
                 gameManager.tie()
 
-            time.sleep(sleep_time*6)
+            time.sleep(sleep_time*4)
 
         game.clean()
         for obj in OBJECTS:

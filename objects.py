@@ -1,4 +1,3 @@
-from pygame import mixer
 import numpy as np
 import random
 import pygame
@@ -283,7 +282,7 @@ class Table():
         opposite_index = 14 - last_cluster.cluster_id
 
         if len(self.clusters[opposite_index].stones) == 0 or last_cluster.cluster_id not in player.cluster_ids:
-            return None
+            return False
 
         while len(self.clusters[opposite_index].stones) != 0:
             for stone in self.clusters[opposite_index].stones:
@@ -292,6 +291,7 @@ class Table():
 
         self.clusters[player.store_id].stones = np.append(self.clusters[player.store_id].stones, last_cluster.stones[0])
         last_cluster.stones = np.delete(last_cluster.stones, np.where(last_cluster.stones == last_cluster.stones[0]))
+        return True
 
     def clear_clusters(self):
         self.clear_clusters = np.array([], dtype=object)
