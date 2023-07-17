@@ -1,6 +1,7 @@
+#pyinstaller main.py --noconsole --add-data "assets;assets" --add-data "venv;venv" 
 from pygame.sprite import Group as Layer
 from pygame.locals import *
-from objects import *
+from assets.objects import *
 import numpy as np
 import pygame
 import time
@@ -15,7 +16,7 @@ pygame.display.set_caption('Mancala')
 ICON = pygame.image.load("assets/icon.png").convert_alpha()
 pygame.display.set_icon(ICON)
 
-BACKGROUND = pygame.image.load(f"assets/{SKINS[skin]} Table.png").convert_alpha()
+BACKGROUND = pygame.image.load(f"assets/Table/{SKINS[skin]} Table.png").convert_alpha()
 WINDOW.blit(BACKGROUND, (0, 0))
 
 turn_pos = (400, 36)
@@ -396,7 +397,7 @@ class Game():
         global SKIN
         global skin
 
-        BACKGROUND = pygame.image.load(f"assets/{SKINS[skin]} Table.png").convert_alpha()
+        BACKGROUND = pygame.image.load(f"assets/Table/{SKINS[skin]} Table.png").convert_alpha()
         self.win_png = pygame.image.load(f"assets/Mancala (Interface)/{SKINS[skin]} ganador.png").convert_alpha()
         self.tie_png = pygame.image.load(f"assets/Mancala (Interface)/{SKINS[skin]} empate.png").convert_alpha()
 
